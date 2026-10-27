@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Keyboard, Link2, MessagesSquare, Plus, Trash2 } from 'lucide-react';
+import { BookOpenText, Columns3, Keyboard, Link2, ListChecks, MessagesSquare, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../db';
 import {
@@ -9,15 +9,19 @@ import {
   insertRow,
   linkRowArgument,
   recordInsert,
+  setHiddenColumns,
   toggleKind,
   updateCell,
 } from '../lib/repo';
-import { KIND_SHORTCUTS, firstSpeakingSide, flowColumns, roundSegments, speechSide } from '../lib/speeches';
+import { KIND_SHORTCUTS, firstSpeakingSide, flowColumns, hiddenColumns, roundSegments, speechSide } from '../lib/speeches';
 import { DEFAULT_ARG_COL_WIDTH, DEFAULT_COL_WIDTH, confirmAction, toast, useApp } from '../store';
 import { type BankResponse, type FlowRow, KIND_LABELS, type Side, type Speech } from '../types';
+import { ColumnMenu } from './ColumnMenu';
 import { CrossfirePanel } from './CrossfirePanel';
 import { type CellHandle, FlowCellEditor } from './FlowCellEditor';
 import { QuickInsert } from './QuickInsert';
+import { ReadingMode } from './ReadingMode';
+import { SummaryPanel } from './SummaryPanel';
 import { SaveToBankDialog } from './SaveToBankDialog';
 import { TimerBar } from './TimerBar';
 import { EmptyState } from './ui';
@@ -39,8 +43,9 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
     setView,
     colWidths,
     setColWidth,
-    cxOpen,
-    setCxOpen,
+    panel,
+    setPanel,
+    togglePanel,
     cxAuto,
   } = useApp();
   // null = no such round (deleted); undefined = still loading.
@@ -68,6 +73,10 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
     async () => (roundId && theirSide ? db.rows.where({ roundId, sheet: theirSide }).toArray() : []),
     [roundId, theirSide],
   );
+  const ourRows = useLiveQuery(
+    async () => (roundId && round ? db.rows.where({ roundId, sheet: round.ourSide }).toArray() : []),
+    [roundId, round?.ourSide],
+  );
   const cells = useLiveQuery(() => (roundId ? db.cells.where('roundId').equals(roundId).toArray() : []), [roundId]);
   const cellMap = useMemo(() => new Map((cells ?? []).map((c) => [key(c.rowId, c.speech), c])), [cells]);
 
@@ -77,6 +86,14 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
   const lastCell = useRef<Target | null>(null);
   const [insertFor, setInsertFor] = useState<Target | null>(null);
   const [saveFor, setSaveFor] = useState<Target | null>(null);
+  const [readingCase, setReadingCase] = useState(false);
+  const caseData = useLiveQuery(async () => {
+    if (!round?.caseId) return null;
+    const c = await db.cases.get(round.caseId);
+    const sections = (await db.sections.where('caseId').equals(round.caseId).toArray()).sort((a, b) => a.order - b.order);
+    return c ? { title: c.title, blocks: sections.map((s) => ({ id: s.id, title: s.title, body: s.body })) } : null;
+  }, [round?.caseId]);
+  const [colMenu, setColMenu] = useState<{ x: number; y: number; target?: Speech } | null>(null);
 
   const firstSide = round ? firstSpeakingSide(round.ourSide, round.speakingOrder) : 'PRO';
   const columns = useMemo(() => flowColumns(firstSide), [firstSide]);
@@ -102,16 +119,18 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
   // Open the crossfire panel when the timer moves onto a crossfire (not on first render).
   const prevSegment = useRef(timers.segmentId);
   useEffect(() => {
-    if (prevSegment.current !== timers.segmentId && cxAuto && CX_IDS.includes(timers.segmentId)) setCxOpen(true);
+    if (prevSegment.current !== timers.segmentId && cxAuto && CX_IDS.includes(timers.segmentId)) setPanel('cx');
     prevSegment.current = timers.segmentId;
-  }, [timers.segmentId, cxAuto, setCxOpen]);
+  }, [timers.segmentId, cxAuto, setPanel]);
 
   // Space / N / P / Shift+P / X work anywhere on the flow except while typing.
   useEffect(() => {
     if (!round) return;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (t.closest('input, textarea, select, [role="dialog"]') || e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ignore keys while typing or while any overlay (reading mode, dialogs, menus) is open.
+      if (t.closest('input, textarea, select') || document.querySelector('[role="dialog"], [role="menu"]')) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.code === 'Space') {
         e.preventDefault();
         toggleSpeech();
@@ -124,12 +143,15 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
         if (i >= 0 && i < segments.length - 1) selectSegment(segments[i + 1].id, segments[i + 1].seconds);
       } else if (e.code === 'KeyX') {
         e.preventDefault();
-        setCxOpen(!useApp.getState().cxOpen);
+        togglePanel('cx');
+      } else if (e.code === 'KeyS') {
+        e.preventDefault();
+        togglePanel('summary');
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [round, segments, toggleSpeech, togglePrep, selectSegment, setCxOpen]);
+  }, [round, segments, toggleSpeech, togglePrep, selectSegment, togglePanel]);
 
   if (!roundId || round === null) {
     return (
@@ -146,11 +168,17 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
   }
   if (!round || !rows || !args || !responses) return null;
 
+  const hidden = hiddenColumns(round.hiddenCols, sheet, firstSide);
+  const visible = columns.filter((c) => !hidden.includes(c));
+  const toggleColumn = (s: Speech) =>
+    setHiddenColumns(round.id, sheet, hidden.includes(s) ? hidden.filter((h) => h !== s) : [...hidden, s]);
+  const columnHasText = (s: Speech) => rows.some((r) => cellMap.get(key(r.id, s))?.text.trim());
+
   const widthOf = (k: string) => colWidths[k] ?? (k === 'arg' ? DEFAULT_ARG_COL_WIDTH : DEFAULT_COL_WIDTH);
 
   const onCellKey = (row: FlowRow, rowIndex: number, speech: Speech) => (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const ta = e.currentTarget;
-    const col = columns.indexOf(speech);
+    const col = visible.indexOf(speech);
 
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const before = ta.value.slice(0, ta.selectionStart);
@@ -176,9 +204,9 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
       const dir = e.shiftKey ? -1 : 1;
       let c = col + dir;
       let r = rowIndex;
-      if (c >= columns.length) [c, r] = [0, r + 1];
-      if (c < 0) [c, r] = [columns.length - 1, r - 1];
-      if (rows[r]) focus(rows[r].id, columns[c]);
+      if (c >= visible.length) [c, r] = [0, r + 1];
+      if (c < 0) [c, r] = [visible.length - 1, r - 1];
+      if (rows[r] && visible[c]) focus(rows[r].id, visible[c]);
       return;
     }
     if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -200,7 +228,9 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
     if (!insertFor) return;
     const { rowId, speech } = insertFor;
     setInsertFor(null);
-    handles.current.get(key(rowId, speech))?.appendLine(formatInsert(r, KIND_LABELS[r.kind]));
+    // Frontlines (responses saved on your own contentions) are marked FL on the flow.
+    const own = args.find((a) => a.id === r.argumentId)?.caseId;
+    handles.current.get(key(rowId, speech))?.appendLine(formatInsert(r, own ? 'FL' : KIND_LABELS[r.kind]));
     await recordInsert(round.id, rowId, speech, r);
     // Inserting into an unlinked row links it to that response's argument.
     const row = rows.find((x) => x.id === rowId);
@@ -274,7 +304,7 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
   const sheetArgs = args.filter((a) => a.side === sheet);
   const constructive: Speech = sheet === 'PRO' ? 'PC' : 'CC';
   const saveRow = saveFor && rows.find((r) => r.id === saveFor.rowId);
-  const gridTemplate = `${widthOf('arg')}px ${columns.map((s) => `${widthOf(s)}px`).join(' ')}`;
+  const gridTemplate = `${widthOf('arg')}px ${columns.map((s) => (hidden.includes(s) ? '1.5rem' : `${widthOf(s)}px`)).join(' ')}`;
   const linkedTheirArgs = (theirRows ?? []).map((r) => r.argumentId).filter((x): x is string => !!x);
 
   return (
@@ -296,12 +326,36 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
               {[round.tournament, round.roundName, round.opponents && `vs ${round.opponents}`].filter(Boolean).join(' · ')}
             </span>
             <div className="ml-auto flex items-center gap-1.5">
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setColMenu({ x: r.left, y: r.bottom + 4 });
+                }}
+                title="Show or hide columns (or right-click a column header)"
+              >
+                <Columns3 size={14} /> Columns
+                {hidden.length > 0 && <span className="text-xs text-faint">{hidden.length} hidden</span>}
+              </button>
+              {caseData && (
+                <button className="btn btn-ghost btn-sm" onClick={() => setReadingCase(true)} title="Read your case with a timer">
+                  <BookOpenText size={14} /> Read case
+                </button>
+              )}
               <button className="btn btn-ghost btn-sm hidden md:inline-flex" onClick={onShortcuts}>
                 <Keyboard size={14} /> Shortcuts
               </button>
-              <button className={`btn btn-sm ${cxOpen ? 'border-accent bg-accent-soft text-accent-text' : ''}`} onClick={() => setCxOpen(!cxOpen)} title="Crossfire panel (X)" aria-pressed={cxOpen}>
+              <button className={`btn btn-sm ${panel === 'cx' ? 'border-accent bg-accent-soft text-accent-text' : ''}`} onClick={() => togglePanel('cx')} title="Crossfire panel (X)" aria-pressed={panel === 'cx'}>
                 <MessagesSquare size={14} /> Crossfire
                 {!!concessions?.length && <span className="rounded-full bg-warn px-1.5 text-[0.65rem] font-bold text-black">{concessions.length}</span>}
+              </button>
+              <button
+                className={`btn btn-sm ${panel === 'summary' ? 'border-accent bg-accent-soft text-accent-text' : ''}`}
+                onClick={() => togglePanel('summary')}
+                title="Plan summary or final focus from the flow (S)"
+                aria-pressed={panel === 'summary'}
+              >
+                <ListChecks size={14} /> Speech builder
               </button>
             </div>
           </div>
@@ -317,9 +371,31 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
                 {columns.map((s) => {
                   const ours = speechSide(s) === round.ourSide;
                   const current = s === currentSpeech;
+                  if (hidden.includes(s)) {
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => toggleColumn(s)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setColMenu({ x: e.clientX, y: e.clientY });
+                        }}
+                        title={`${label.speechName(s)} is hidden. Click to show it.`}
+                        aria-label={`Show ${label.speech(s)} column`}
+                        className="sticky top-0 z-20 flex flex-col items-center gap-1 border-r border-b border-line bg-surface-3/60 py-2 text-faint hover:bg-accent-soft hover:text-accent-text"
+                      >
+                        <span className="font-mono text-[0.6rem] font-bold [writing-mode:vertical-rl]">{label.speech(s)}</span>
+                        {columnHasText(s) && <span className="size-1.5 rounded-full bg-warn" title="Has notes" />}
+                      </button>
+                    );
+                  }
                   return (
                     <div
                       key={s}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setColMenu({ x: e.clientX, y: e.clientY, target: s });
+                      }}
                       className={`sticky top-0 z-20 border-r border-b border-line px-3 py-2 last:border-r-0 ${
                         current ? 'bg-accent-soft' : 'bg-surface-2'
                       }`}
@@ -368,7 +444,10 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
                         <Trash2 size={11} /> Remove
                       </button>
                     </div>
-                    {columns.map((speech) => (
+                    {columns.map((speech) =>
+                      hidden.includes(speech) ? (
+                        <div key={speech} className="border-r border-b border-line bg-surface-3/40 group-last/row:border-b-0" />
+                      ) : (
                       <div
                         key={speech}
                         className={`border-r border-b border-line last:border-r-0 group-last/row:border-b-0 ${
@@ -382,12 +461,13 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
                           speech={speech}
                           width={widthOf(speech)}
                           cell={cellMap.get(key(row.id, speech))}
-                          placeholder={i === 0 && rows.length === 1 && speech === constructive ? 'Flow their contention here…' : undefined}
+                          placeholder={i === 0 && rows.length === 1 && speech === constructive ? (sheet === round.ourSide ? 'Flow your contention here…' : 'Flow their contention here…') : undefined}
                           onKeyDown={onCellKey(row, i, speech)}
                           onFocus={() => (lastCell.current = { rowId: row.id, speech })}
                         />
                       </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 ))}
               </div>
@@ -398,20 +478,44 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
           </div>
         </div>
 
-        {cxOpen && (
+        {panel === 'cx' && (
           // Docked beside the flow on laptops; slides over it on tablets and phones.
           <div className="fixed top-13 right-0 bottom-0 z-30 w-full shadow-pop sm:w-auto lg:static lg:z-auto lg:shadow-none">
             <CrossfirePanel
               round={round}
               timerSegment={timers.segmentId}
               linkedArgumentIds={linkedTheirArgs}
+              ourArgumentIds={(ourRows ?? []).map((r) => r.argumentId).filter((x): x is string => !!x)}
               onInsert={insertIntoLastCell}
-              onClose={() => setCxOpen(false)}
+              onClose={() => setPanel(null)}
             />
+          </div>
+        )}
+        {panel === 'summary' && (
+          <div className="fixed top-13 right-0 bottom-0 z-30 w-full shadow-pop sm:w-auto lg:static lg:z-auto lg:shadow-none">
+            <SummaryPanel round={round} timerSegment={timers.segmentId} onClose={() => setPanel(null)} />
           </div>
         )}
       </div>
 
+      {readingCase && caseData && (
+        <ReadingMode title={caseData.title} blocks={caseData.blocks} targetSeconds={240} onClose={() => setReadingCase(false)} />
+      )}
+      {colMenu && (
+        <ColumnMenu
+          {...colMenu}
+          columns={columns}
+          hidden={hidden}
+          isDefault={!round.hiddenCols?.[sheet]}
+          code={label.speech}
+          name={label.speechName}
+          onToggle={toggleColumn}
+          onResetWidth={(s) => setColWidth(s, null)}
+          onShowAll={() => setHiddenColumns(round.id, sheet, [])}
+          onResetDefault={() => setHiddenColumns(round.id, sheet, null)}
+          onClose={() => setColMenu(null)}
+        />
+      )}
       {insertFor && (
         <QuickInsert
           responses={responses}

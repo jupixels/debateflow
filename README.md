@@ -19,11 +19,22 @@ Then click **Install app** in the top bar (or the install icon at the right of t
 
 ## Using it
 
+Pick your role in **Settings → My role** (or on the welcome screen):
+
+- **Rebuttal** (second speaker): the flow opens on their case.
+- **Constructive** (first speaker): adds the **Case** tab, and the flow opens on your case.
+- **Both**: every tool; the flow opens on their case.
+
 1. **Bank**: pick or add a resolution, then add the opponent arguments you expect. For each argument, write **responses** (tagged NU / Delink / Link turn / Impact turn / Mitigation / Weighing / Other, card or analytic, ★–★★★) and **CX questions**. Paste a whole card and it splits into tag, cite, link and text. New here? **Try it with a sample bank**.
-2. **Rounds**: pick side, speaking order, judge type and prep time, then **Start flowing**.
-3. **Flow**: one sheet per case, opening on *their* case. Columns follow the real speaking order and your speeches are marked **US**. Link a row to a bank argument (inserting from the bank links it for you). **Drag a column's right edge to resize it**; double-click to reset.
-4. **Crossfire**: open the panel with **Crossfire** or `X` (it opens by itself when the timer reaches a crossfire). Log each question and answer, star the concessions, and click **Insert** to drop a concession into the flow cell you last used. Concessions also show up first when you press `/`. Your prepared CX questions from the bank are listed there too, with the arguments they're actually running on top.
-5. **Settings** (gear icon): light/dark/system mode, a **color wheel** for the theme color, **Pro/Con or Aff/Neg** wording (speech names follow: PC → AC, CFF → NFF), flow text size, and backup/import.
+2. **Case** (constructive role): write your case as text blocks and contentions. You get a live time estimate at your speaking speed against 4:00, with where each section starts. **Read** opens a full-screen reading mode with a timer, big adjustable text and an ahead/behind pace indicator. Each contention has **Frontlines** (their likely response → your answer) and **Questions they may ask** (with your answers). **Duplicate** makes a lay version or a shorter cut that shares the same prep.
+3. **Rounds**: pick side, speaking order, judge type, prep time and (if you have one) your case, then **Start flowing**. Your contentions are filled in on your case sheet, linked to their frontlines.
+4. **Flow**: one sheet per case. Columns follow the real speaking order and your speeches are marked **US**. Link a row to a bank argument (inserting from the bank links it for you); on your case sheet, `/` shows that contention's frontlines first and inserts them as `[FL]`.
+   - **Hide columns** by right-clicking a column header or using **Columns**. A hidden column shrinks to a thin strip: click it to bring the column back (a dot means it has notes). Each sheet starts with the columns that are normally empty hidden: the other team's constructive, and the first-speaking team's rebuttal on that team's own case (the first rebuttal only attacks). **Reset to this sheet's default** in the menu restores them.
+   - **Drag a column's right edge to resize it**; double-click to reset.
+   - **Read case** opens your case in reading mode during the round.
+5. **Speech builder** (`S`): plans summary or final focus from the flow. It lists each argument on both sheets with its status (frontlined, needs a frontline, unanswered…), lets you choose **Extend/Answer** or **Drop**, warns when you're going for too much for the judge type, and has a weighing box. It builds an outline with a time estimate that you can **Copy** or **Read** in reading mode.
+6. **Crossfire**: open the panel with **Crossfire** or `X` (it opens by itself when the timer reaches a crossfire). Log each question and answer, star the concessions, and click **Insert** to drop a concession into the flow cell you last used. Concessions also show up first when you press `/`. Your prepared CX questions from the bank are listed there too, with the arguments they're actually running on top, plus your prepared answers to questions about your own case.
+7. **Settings** (gear icon): role, speaking speed, light/dark/system mode, a **color wheel** for the theme color, **Pro/Con or Aff/Neg** wording (speech names follow: PC → AC, CFF → NFF), flow text size, and backup/import.
 
 ### Shortcuts
 
@@ -39,7 +50,8 @@ Press `?` anywhere to see them all.
 | `Alt+1`…`Alt+6` | Tag the cell NU, DL, LT, IT, MIT, WGH (press again to clear) |
 | `Space` · `N` | Start/pause the speech timer · next speech |
 | `P` / `Shift+P` | Start/pause our / their prep (only one runs at a time) |
-| `X` | Show/hide the crossfire panel |
+| `X` / `S` | Show/hide the crossfire panel / speech builder |
+| Right-click a column header | Hide it, or show hidden columns |
 
 Speech times are 4/4/3/3/2 with 3-minute crossfires. The speech clock runs into overtime (shown as `+0:12`); prep stops at zero.
 

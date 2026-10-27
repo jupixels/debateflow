@@ -62,7 +62,7 @@ FlowCell     { id, roundId, speech: PC|CC|PR|CR|PS|CS|PFF|CFF, row, text, linked
 
 **Phase 1 (MVP), done:** project scaffold, CI, Pages deploy · bank CRUD with tags · round setup · flow grid with keyboard navigation · `/` quick insert · timers · offline storage · JSON export/import.
 
-**Phase 2:** ~~PWA install~~ (done) · ~~crossfire panel: Q&A log, concessions, prepared questions~~ (done) · ~~resizable columns, theme color wheel, redesign~~ (done) · frontline mode · speech view with time estimate · opponent library · round history and response stats · judge-mode warnings.
+**Phase 2:** ~~roles + constructive tools: case editor, reading mode, frontline bank, summary/FF builder~~ (done) · ~~hideable columns~~ (done) · ~~PWA install~~ (done) · ~~crossfire panel: Q&A log, concessions, prepared questions~~ (done) · ~~resizable columns, theme color wheel, redesign~~ (done) · opponent library · round history and response stats · judge-mode warnings.
 
 **Phase 3 (optional):** partner sync (e.g. Supabase) · print/PDF flows · import from Google Docs / Word block files · tablet/stylus tweaks.
 

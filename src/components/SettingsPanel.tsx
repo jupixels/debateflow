@@ -4,7 +4,14 @@ import { downloadJson, exportAll, exportBank, importAll, parseExport } from '../
 import { isIos, promptInstall, useInstall } from '../lib/install';
 import { ACCENT_PRESETS, accentCss } from '../lib/theme';
 import { DEFAULT_ACCENT, type ThemeMode, toast, useApp } from '../store';
+import type { Role } from '../types';
 import { ColorWheel } from './ColorWheel';
+
+const ROLES: { id: Role; label: string; hint: string }[] = [
+  { id: 'REBUTTAL', label: 'Rebuttal', hint: 'Second speaker: rebuttal and final focus. Opens on their case.' },
+  { id: 'CONSTRUCTIVE', label: 'Constructive', hint: 'First speaker: case and summary. Adds the Case tab and opens on your case.' },
+  { id: 'BOTH', label: 'Both', hint: 'All tools. Opens on their case.' },
+];
 
 const MODES: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
   { id: 'light', label: 'Light', icon: Sun },
@@ -43,6 +50,25 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="flex-1 space-y-7 overflow-auto px-5 py-5">
+          <section>
+            <h3 className="eyebrow mb-2.5">My role</h3>
+            <div className="seg w-full">
+              {ROLES.map((r) => (
+                <button key={r.id} aria-pressed={s.role === r.id} onClick={() => s.setRole(r.id)}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">{ROLES.find((r) => r.id === s.role)?.hint}</p>
+            <label className="mt-4 block">
+              <span className="label flex justify-between">
+                <span>Speaking speed (for time estimates)</span>
+                <span className="font-mono text-fg">{s.wpm} wpm</span>
+              </span>
+              <input type="range" min={120} max={330} step={5} value={s.wpm} onChange={(e) => s.setWpm(Number(e.target.value))} className="w-full accent-[var(--accent)]" />
+            </label>
+          </section>
+
           <section>
             <h3 className="eyebrow mb-2.5">Appearance</h3>
             <div className="seg w-full">

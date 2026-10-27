@@ -57,7 +57,7 @@ export function QuickInsert({ responses, args, concessions, preferArgumentId, on
         <input
           autoFocus
           className="h-12 flex-1 bg-transparent text-[0.95rem] outline-none placeholder:text-faint"
-          placeholder={preferred ? `Responses to “${preferred.title}”… type to search everything` : 'Search your bank…'}
+          placeholder={preferred ? `${preferred.caseId ? 'Frontlines for' : 'Responses to'} “${preferred.title}”… type to search everything` : 'Search your bank…'}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -83,7 +83,7 @@ export function QuickInsert({ responses, args, concessions, preferArgumentId, on
             {i === 0 && it.type === 'cx' && <div className="eyebrow px-2.5 pt-1.5 pb-1">Crossfire concessions</div>}
             {i === firstBank && (
               <div className="eyebrow px-2.5 pt-1.5 pb-1">
-                {!query && preferred ? `Responses to ${preferred.title}` : 'From your bank'}
+                {!query && preferred ? `${preferred.caseId ? 'Frontlines for' : 'Responses to'} ${preferred.title}` : 'From your bank'}
               </div>
             )}
             <button

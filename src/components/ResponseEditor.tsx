@@ -8,12 +8,15 @@ import { KindBadge } from './KindBadge';
 
 interface Props {
   argumentId: string;
+  /** Editing a frontline for your own contention rather than a response to theirs. */
+  frontline?: boolean;
   initial?: Partial<BankResponse>;
   onDone: (saved?: BankResponse) => void;
 }
 
-export function ResponseEditor({ argumentId, initial, onDone }: Props) {
-  const [kind, setKind] = useState<ResponseKind>(initial?.kind ?? 'NU');
+export function ResponseEditor({ argumentId, frontline = false, initial, onDone }: Props) {
+  const [kind, setKind] = useState<ResponseKind>(initial?.kind ?? (frontline ? 'OTHER' : 'NU'));
+  const [against, setAgainst] = useState(initial?.against ?? '');
   const [isCard, setIsCard] = useState(initial?.isCard ?? false);
   const [tag, setTag] = useState(initial?.tag ?? '');
   const [cite, setCite] = useState(initial?.cite ?? '');
@@ -42,10 +45,11 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
       tag,
       cite: cite.trim() || undefined,
       url: url.trim() || undefined,
+      against: frontline ? against.trim() || undefined : initial?.against,
       text,
       strength,
     });
-    toast(initial?.id ? 'Response updated.' : 'Saved to your bank.', 'success');
+    toast(initial?.id ? 'Saved.' : 'Saved to your bank.', 'success');
     onDone(saved);
   };
 
@@ -82,6 +86,15 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
         </div>
       )}
 
+      {frontline && (
+        <div>
+          <label className="label" htmlFor="against">
+            Their response <span className="text-faint">· what they’ll say against this contention</span>
+          </label>
+          <input id="against" className="input" placeholder="e.g. Non-unique: the trend already exists" value={against} onChange={(e) => setAgainst(e.target.value)} />
+        </div>
+      )}
+
       <div>
         <span className="label">Type</span>
         <div className="flex flex-wrap gap-1.5">
@@ -103,7 +116,7 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
 
       <div>
         <label className="label" htmlFor="tag">
-          Tag <span className="text-faint">· what you say on the flow</span>
+          {frontline ? 'Your frontline' : 'Tag'} <span className="text-faint">· what you say on the flow</span>
         </label>
         <input id="tag" autoFocus className="input" value={tag} onChange={(e) => setTag(e.target.value)} required />
       </div>
@@ -161,7 +174,7 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
         <button type="button" className="btn" onClick={() => onDone()}>
           Cancel
         </button>
-        <button className="btn btn-primary">{initial?.id ? 'Save changes' : 'Save response'}</button>
+        <button className="btn btn-primary">{initial?.id ? 'Save changes' : frontline ? 'Save frontline' : 'Save response'}</button>
       </div>
     </form>
   );

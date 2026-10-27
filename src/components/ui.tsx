@@ -84,7 +84,9 @@ export function Toaster() {
 export function ConfirmDialog() {
   const request = useConfirmStore((s) => s.request);
   const okRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => okRef.current?.focus(), [request]);
+  useEffect(() => {
+    okRef.current?.focus();
+  }, [request]);
   if (!request) return null;
   return (
     <Modal label={request.title} onClose={() => request.resolve(false)} width="max-w-sm" align="center">

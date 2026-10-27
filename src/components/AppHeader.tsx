@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BookOpen, Download, Keyboard, ListChecks, Settings, Swords } from 'lucide-react';
+import { BookOpen, Download, Keyboard, ListChecks, ScrollText, Settings, Swords } from 'lucide-react';
 import { db } from '../db';
 import { promptInstall, useInstall } from '../lib/install';
 import { type View, useApp } from '../store';
@@ -7,12 +7,13 @@ import { Logo } from './ui';
 
 const TABS: { id: View; label: string; icon: typeof BookOpen }[] = [
   { id: 'bank', label: 'Bank', icon: BookOpen },
+  { id: 'case', label: 'Case', icon: ScrollText },
   { id: 'rounds', label: 'Rounds', icon: ListChecks },
   { id: 'flow', label: 'Flow', icon: Swords },
 ];
 
 export function AppHeader({ onSettings, onShortcuts }: { onSettings: () => void; onShortcuts: () => void }) {
-  const { view, setView, roundId } = useApp();
+  const { view, setView, roundId, role } = useApp();
   const installPrompt = useInstall((s) => s.prompt);
   const round = useLiveQuery(() => (roundId ? db.rounds.get(roundId) : undefined), [roundId]);
   const roundLabel = round && ([round.roundName, round.opponents && `vs ${round.opponents}`].filter(Boolean).join(' ') || 'Round');
@@ -24,7 +25,7 @@ export function AppHeader({ onSettings, onShortcuts }: { onSettings: () => void;
         <span className="hidden font-semibold tracking-tight sm:inline">Rebuttal Flow</span>
       </div>
       <nav className="seg ml-1 sm:ml-3" aria-label="Main">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.filter((t) => t.id !== 'case' || role !== 'REBUTTAL').map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             aria-pressed={view === id}

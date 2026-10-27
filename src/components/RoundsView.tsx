@@ -16,7 +16,7 @@ const JUDGE_HINT: Record<JudgeType, string> = {
 };
 
 export function RoundsView() {
-  const { resolutionId, roundId: openRoundId, closeRound } = useApp();
+  const { resolutionId, roundId: openRoundId, closeRound, role } = useApp();
   const resolutions = useLiveQuery(() => db.resolutions.orderBy('createdAt').toArray(), []);
   const rounds = useLiveQuery(() => db.rounds.orderBy('createdAt').reverse().toArray(), []);
   const open = useOpenRound();
@@ -33,10 +33,18 @@ export function RoundsView() {
     judge: '',
     judgeType: 'FLOW' as JudgeType,
     prepMinutes: 3,
+    /** '' = use the newest matching case; 'none' = no case. */
+    caseId: '',
   });
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const chosenResolution = form.resolutionId || resolutionId || resolutions?.[0]?.id || '';
   const newResolution = chosenResolution === '__new' || !chosenResolution;
+  const cases = useLiveQuery(
+    () => (newResolution ? [] : db.cases.where('resolutionId').equals(chosenResolution).filter((c) => c.side === form.ourSide).sortBy('createdAt')),
+    [chosenResolution, newResolution, form.ourSide],
+  );
+  const pickedCase = form.caseId === 'none' ? undefined : (cases?.find((c) => c.id === form.caseId) ?? cases?.[cases.length - 1]);
+  const showCasePicker = role !== 'REBUTTAL' || !!cases?.length;
 
   const start = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +63,7 @@ export function RoundsView() {
       judge: form.judge.trim(),
       judgeType: form.judgeType,
       prepSeconds: Math.round(form.prepMinutes * 60),
+      caseId: newResolution ? undefined : pickedCase?.id,
     });
     open(round);
   };
@@ -113,6 +122,27 @@ export function RoundsView() {
                 />
               )}
             </div>
+
+            {showCasePicker && !newResolution && (
+              <div>
+                <label className="label" htmlFor="ourCase">
+                  Our case
+                </label>
+                {cases?.length ? (
+                  <select id="ourCase" className="input" value={pickedCase?.id ?? 'none'} onChange={(e) => set('caseId', e.target.value)}>
+                    {cases.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                    <option value="none">No case</option>
+                  </select>
+                ) : (
+                  <p className="text-xs text-faint">No {label.side(form.ourSide).toLowerCase()} case for this resolution yet. Write one in the Case tab.</p>
+                )}
+                {pickedCase && <p className="mt-1.5 text-xs text-faint">Its contentions are filled in on your case sheet, linked to their frontlines.</p>}
+              </div>
+            )}
 
             <div className="grid grid-cols-[1fr_7rem] gap-3">
               <Field id="tournament" label="Tournament" value={form.tournament} onChange={(v) => set('tournament', v)} />

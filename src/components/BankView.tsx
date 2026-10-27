@@ -23,10 +23,11 @@ import {
   deleteResponse,
   renameArgument,
   updateQuestion,
+  updateQuestionAnswer,
 } from '../lib/repo';
 import { loadSampleBank } from '../lib/sample';
 import { confirmAction, toast, useApp } from '../store';
-import { type Argument, type BankResponse, KIND_LABELS, KIND_NAMES, RESPONSE_KINDS, type ResponseKind, type Side } from '../types';
+import { type Argument, type BankResponse, type CxQuestion, KIND_LABELS, KIND_NAMES, RESPONSE_KINDS, type ResponseKind, type Side } from '../types';
 import { KindBadge } from './KindBadge';
 import { ResponseEditor } from './ResponseEditor';
 import { EmptyState, Modal, ModalHeader } from './ui';
@@ -69,12 +70,13 @@ export function BankView() {
             <ArgumentGroup
               key={side}
               side={side}
-              args={args?.filter((a) => a.side === side) ?? []}
+              args={args?.filter((a) => a.side === side && !a.caseId) ?? []}
               counts={counts}
               selectedId={argumentId}
               onSelect={selectArgument}
             />
           ))}
+          <OwnContentions args={args?.filter((a) => a.caseId) ?? []} counts={counts} selectedId={argumentId} onSelect={selectArgument} />
         </div>
       </aside>
       <section className="min-h-0 min-w-0 flex-1 overflow-auto">
@@ -92,16 +94,34 @@ export function BankView() {
 
 function Welcome({ onCreated }: { onCreated: (id: string) => void }) {
   const [title, setTitle] = useState('');
+  const { role, setRole } = useApp();
   return (
     <div className="flex h-full items-center justify-center overflow-auto p-6">
       <div className="card w-full max-w-lg p-7">
         <div className="mb-4 grid size-12 place-items-center rounded-xl bg-accent-soft text-accent-text">
           <BookOpen size={22} />
         </div>
-        <h1 className="text-xl font-semibold tracking-tight">Build your rebuttal bank</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Set up your prep</h1>
         <p className="mt-1.5 text-sm text-muted">
-          Save responses to the arguments you expect to hit. Then, mid-round, press <kbd>/</kbd> in any flow cell to drop one in.
+          Save responses to the arguments you expect to hit, and write your case. Mid-round, press <kbd>/</kbd> in any flow cell to drop a response in.
         </p>
+        <div className="mt-5">
+          <span className="label">I mostly give</span>
+          <div className="seg w-full">
+            {(
+              [
+                ['REBUTTAL', 'Rebuttal & FF'],
+                ['CONSTRUCTIVE', 'Case & summary'],
+                ['BOTH', 'Both'],
+              ] as const
+            ).map(([id, text]) => (
+              <button key={id} aria-pressed={role === id} onClick={() => setRole(id)}>
+                {text}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-faint">You can change this any time in Settings.</p>
+        </div>
         <ol className="mt-5 space-y-2 text-sm">
           {['Add this month’s resolution', 'Add the opponent arguments you expect', 'Write or paste responses to each'].map((s, i) => (
             <li key={s} className="flex items-center gap-3">
@@ -135,7 +155,7 @@ function Welcome({ onCreated }: { onCreated: (id: string) => void }) {
   );
 }
 
-function ResolutionPicker() {
+export function ResolutionPicker() {
   const { resolutionId, selectResolution } = useApp();
   const resolutions = useLiveQuery(() => db.resolutions.orderBy('createdAt').toArray(), []);
   const [open, setOpen] = useState(false);
@@ -273,7 +293,45 @@ function ArgumentGroup({
   );
 }
 
-function ArgumentDetail({ argument }: { argument: Argument }) {
+function OwnContentions({
+  args,
+  counts,
+  selectedId,
+  onSelect,
+}: {
+  args: Argument[];
+  counts?: Map<string, number>;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const label = useLabels();
+  if (!args.length) return null;
+  return (
+    <div className="mt-4">
+      <div className="eyebrow mb-1 px-1" title="Contentions from your cases (Case tab). Prep their frontlines here.">
+        Your contentions <span className="ml-1 font-normal normal-case">{args.length}</span>
+      </div>
+      <ul className="space-y-0.5">
+        {args.map((a) => (
+          <li key={a.id}>
+            <button className="nav-item" aria-current={a.id === selectedId} onClick={() => onSelect(a.id)}>
+              <span className="rounded bg-surface-3 px-1 text-[0.6rem] font-semibold text-muted">{label.side(a.side)}</span>
+              <span className="flex-1 truncate">{a.title}</span>
+              <span className="text-xs text-faint tabular-nums">{counts?.get(a.id) ?? 0}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * One bank argument. Opponent arguments hold your responses and the CX questions you'll ask;
+ * your own contentions (from a case) hold frontlines and the questions they may ask you.
+ */
+export function ArgumentDetail({ argument, embedded = false }: { argument: Argument; embedded?: boolean }) {
+  const own = !!argument.caseId;
   const responses = useLiveQuery(() => db.responses.where('argumentId').equals(argument.id).sortBy('createdAt'), [argument.id]);
   const questions = useLiveQuery(() => db.questions.where('argumentId').equals(argument.id).sortBy('createdAt'), [argument.id]);
   const label = useLabels();
@@ -296,11 +354,13 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
   }, [responses, kindFilter, cardFilter, query]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8">
-      <div className="flex items-start gap-3">
+    <div className={embedded ? 'px-5 pt-4 pb-5' : 'mx-auto max-w-4xl px-4 py-6 sm:px-8'}>
+      <div className={`flex items-start gap-3 ${embedded ? 'hidden' : ''}`}>
         <div className="min-w-0 flex-1">
-          <div className="eyebrow mb-1">{label.side(argument.side)} argument</div>
-          {renaming ? (
+          <div className="eyebrow mb-1">{own ? `Your contention · ${label.side(argument.side)}` : `${label.side(argument.side)} argument`}</div>
+          {own ? (
+            <h1 className="text-xl font-semibold tracking-tight">{argument.title}</h1>
+          ) : renaming ? (
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -319,6 +379,7 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
             </h1>
           )}
         </div>
+        {!own && (
         <button
           className="btn btn-ghost btn-danger btn-sm"
           onClick={async () => {
@@ -330,13 +391,14 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
         >
           <Trash2 size={14} /> Delete
         </button>
+        )}
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-line">
         {(
           [
-            ['responses', 'Responses', responses?.length],
-            ['questions', 'CX questions', questions?.length],
+            ['responses', own ? 'Frontlines' : 'Responses', responses?.length],
+            ['questions', own ? 'Questions they may ask' : 'CX questions', questions?.length],
           ] as const
         ).map(([id, label, n]) => (
           <button
@@ -351,7 +413,7 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
         ))}
         {tab === 'responses' && (
           <button className="btn btn-primary btn-sm mb-2 ml-auto" onClick={() => setEditing('new')}>
-            <Plus size={14} /> New response
+            <Plus size={14} /> {own ? 'New frontline' : 'New response'}
           </button>
         )}
       </div>
@@ -389,14 +451,16 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
           {responses?.length === 0 && (
             <EmptyState
               icon={<MessageSquareQuote size={20} />}
-              title="No responses yet"
+              title={own ? 'No frontlines yet' : 'No responses yet'}
               action={
                 <button className="btn btn-primary" onClick={() => setEditing('new')}>
                   <Plus size={14} /> Write the first one
                 </button>
               }
             >
-              Write an analytic or paste a card. Tag it by type so you can find it fast in round.
+              {own
+                ? 'For each response you expect against this contention, write how you’ll answer it. Press / on your case sheet to pull these up.'
+                : 'Write an analytic or paste a card. Tag it by type so you can find it fast in round.'}
             </EmptyState>
           )}
           {responses && responses.length > 0 && filtered.length === 0 && (
@@ -404,17 +468,17 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
           )}
         </>
       ) : (
-        <QuestionList argumentId={argument.id} questions={questions ?? []} />
+        <QuestionList argumentId={argument.id} questions={questions ?? []} own={own} />
       )}
 
       {editing && (
         <Modal label="Response" onClose={() => setEditing(null)} width="max-w-2xl">
           <ModalHeader
-            title={editing === 'new' ? 'New response' : 'Edit response'}
+            title={editing === 'new' ? (own ? 'New frontline' : 'New response') : own ? 'Edit frontline' : 'Edit response'}
             subtitle={<>to “{argument.title}”</>}
             onClose={() => setEditing(null)}
           />
-          <ResponseEditor argumentId={argument.id} initial={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />
+          <ResponseEditor argumentId={argument.id} frontline={own} initial={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />
         </Modal>
       )}
     </div>
@@ -428,6 +492,7 @@ function ResponseCard({ response: r, onEdit }: { response: BankResponse; onEdit:
       <div className="flex items-start gap-3 px-4 py-3">
         <KindBadge kind={r.kind} className="mt-0.5" />
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(!open)} aria-expanded={open}>
+          {r.against && <div className="mb-0.5 text-xs text-muted">Answers: <span className="text-fg/80">{r.against}</span></div>}
           <div className="font-medium">{r.tag}</div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
             <span className="text-warn" title="Strength">
@@ -469,12 +534,14 @@ function ResponseCard({ response: r, onEdit }: { response: BankResponse; onEdit:
   );
 }
 
-function QuestionList({ argumentId, questions }: { argumentId: string; questions: { id: string; text: string }[] }) {
+function QuestionList({ argumentId, questions, own }: { argumentId: string; questions: CxQuestion[]; own: boolean }) {
   const [text, setText] = useState('');
   return (
     <div className="mt-4">
       <p className="mb-3 text-sm text-muted">
-        Questions to ask in crossfire when they read this. They show up in the crossfire panel during the round.
+        {own
+          ? 'Questions the other team is likely to ask about this contention, with your answer ready. They show up in the crossfire panel.'
+          : 'Questions to ask in crossfire when they read this. They show up in the crossfire panel during the round.'}
       </p>
       <form
         className="flex gap-2"
@@ -485,35 +552,50 @@ function QuestionList({ argumentId, questions }: { argumentId: string; questions
           setText('');
         }}
       >
-        <input className="input" placeholder="e.g. What’s your evidence’s date?" value={text} onChange={(e) => setText(e.target.value)} />
+        <input className="input" placeholder={own ? 'e.g. Isn’t your link study from before the policy changed?' : 'e.g. What’s your evidence’s date?'} value={text} onChange={(e) => setText(e.target.value)} />
         <button className="btn btn-primary h-9">Add</button>
       </form>
       <ul className="mt-3 space-y-2">
         {questions.map((q) => (
-          <QuestionRow key={q.id} id={q.id} text={q.text} />
+          <QuestionRow key={q.id} question={q} own={own} />
         ))}
       </ul>
       {questions.length === 0 && (
         <EmptyState icon={<HelpCircle size={20} />} title="No questions yet">
-          Good crossfire questions set up your rebuttal: ask for warrants, dates, and concessions you can extend.
+          {own
+            ? 'Think about where your contention is weakest and prepare short, confident answers.'
+            : 'Good crossfire questions set up your rebuttal: ask for warrants, dates, and concessions you can extend.'}
         </EmptyState>
       )}
     </div>
   );
 }
 
-function QuestionRow({ id, text }: { id: string; text: string }) {
+function QuestionRow({ question: { id, text, answer = '' }, own }: { question: CxQuestion; own: boolean }) {
   const [value, setValue] = useState(text);
+  const [ans, setAns] = useState(answer);
   return (
-    <li className="group card flex items-center gap-2 py-1 pr-1 pl-3">
-      <HelpCircle size={15} className="shrink-0 text-accent-text" />
-      <input
-        className="h-8 flex-1 bg-transparent text-sm outline-none"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => value.trim() && value !== text && updateQuestion(id, value)}
-        aria-label="Question"
-      />
+    <li className="group card flex items-start gap-2 py-1 pr-1 pl-3">
+      <HelpCircle size={15} className="mt-2.5 shrink-0 text-accent-text" />
+      <div className="min-w-0 flex-1">
+        <input
+          className="h-8 w-full bg-transparent text-sm font-medium outline-none"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={() => value.trim() && value !== text && updateQuestion(id, value)}
+          aria-label="Question"
+        />
+        {own && (
+          <input
+            className="mb-1 h-7 w-full rounded bg-surface-2 px-2 text-sm text-muted outline-none placeholder:text-faint focus:text-fg"
+            value={ans}
+            placeholder="Your answer…"
+            onChange={(e) => setAns(e.target.value)}
+            onBlur={() => ans !== answer && updateQuestionAnswer(id, ans.trim())}
+            aria-label="Your answer"
+          />
+        )}
+      </div>
       <button className="btn btn-ghost btn-sm btn-icon btn-danger opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100" onClick={() => deleteQuestion(id)} aria-label="Delete question">
         <Trash2 size={14} />
       </button>

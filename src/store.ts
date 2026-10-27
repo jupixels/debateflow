@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type Clock, clampAtZero, makeClock, pause, reset, toggle } from './lib/timer';
 import type { SideLabels } from './lib/labels';
-import type { Side } from './types';
+import type { Role, Side } from './types';
 
-export type View = 'bank' | 'rounds' | 'flow';
+export type View = 'bank' | 'case' | 'rounds' | 'flow';
+export type Panel = 'cx' | 'summary' | null;
 export type ThemeMode = 'dark' | 'light' | 'system';
 
 /** Accent color as an OKLCH hue (0–360) and chroma (0–0.25). */
@@ -35,11 +36,17 @@ interface AppState {
   sideLabels: SideLabels;
   /** Flow column widths in px, keyed by speech code or 'arg'. */
   colWidths: Record<string, number>;
-  cxOpen: boolean;
+  role: Role;
+  /** Speaking speed used for time estimates, in words per minute. */
+  wpm: number;
+  readingFontSize: number;
+  /** Side panel next to the flow. */
+  panel: Panel;
   /** Open the crossfire panel automatically when the timer reaches a crossfire. */
   cxAuto: boolean;
   resolutionId: string | null;
   argumentId: string | null;
+  caseId: string | null;
   roundId: string | null;
   sheet: Side | null;
   timers: TimerState;
@@ -51,7 +58,12 @@ interface AppState {
   setSideLabels: (l: SideLabels) => void;
   setColWidth: (key: string, px: number | null) => void;
   resetColWidths: () => void;
-  setCxOpen: (open: boolean) => void;
+  setRole: (r: Role) => void;
+  setWpm: (n: number) => void;
+  setReadingFontSize: (n: number) => void;
+  setPanel: (p: Panel) => void;
+  togglePanel: (p: Exclude<Panel, null>) => void;
+  selectCase: (id: string | null) => void;
   setCxAuto: (on: boolean) => void;
   selectResolution: (id: string | null) => void;
   selectArgument: (id: string | null) => void;
@@ -86,10 +98,14 @@ export const useApp = create<AppState>()(
       flowFontSize: 14,
       sideLabels: 'procon',
       colWidths: {},
-      cxOpen: false,
+      role: 'REBUTTAL',
+      wpm: 220,
+      readingFontSize: 24,
+      panel: null,
       cxAuto: true,
       resolutionId: null,
       argumentId: null,
+      caseId: null,
       roundId: null,
       sheet: null,
       timers: emptyTimers,
@@ -107,9 +123,14 @@ export const useApp = create<AppState>()(
           return { colWidths };
         }),
       resetColWidths: () => set({ colWidths: {} }),
-      setCxOpen: (cxOpen) => set({ cxOpen }),
+      setRole: (role) => set({ role }),
+      setWpm: (wpm) => set({ wpm: Math.min(350, Math.max(100, Math.round(wpm))) }),
+      setReadingFontSize: (readingFontSize) => set({ readingFontSize: Math.min(48, Math.max(14, readingFontSize)) }),
+      setPanel: (panel) => set({ panel }),
+      togglePanel: (p) => set({ panel: get().panel === p ? null : p }),
+      selectCase: (caseId) => set({ caseId }),
       setCxAuto: (cxAuto) => set({ cxAuto }),
-      selectResolution: (resolutionId) => set({ resolutionId, argumentId: null }),
+      selectResolution: (resolutionId) => set({ resolutionId, argumentId: null, caseId: null }),
       selectArgument: (argumentId) => set({ argumentId }),
       openRound: (roundId, prepSeconds, defaultSheet, firstSegment) => {
         const same = get().timers.roundId === roundId;
@@ -156,9 +177,14 @@ export const useApp = create<AppState>()(
     }),
     {
       name: 'rebuttal-flow-ui',
-      version: 1,
+      version: 2,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
+        // v1 had a crossfire-only `cxOpen` flag.
+        if (version < 2) {
+          s.panel = s.cxOpen ? 'cx' : null;
+          delete s.cxOpen;
+        }
         // v0 stored `theme: 'dark' | 'light'`.
         if (version === 0 && typeof s.theme === 'string') {
           s.themeMode = s.theme;
