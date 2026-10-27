@@ -7,6 +7,7 @@ import { createResolution, createRound, deleteRound } from '../lib/repo';
 import { confirmAction, toast, useApp } from '../store';
 import type { JudgeType, Side } from '../types';
 import { EmptyState } from './ui';
+import { useLabels } from '../hooks/useLabels';
 
 const JUDGE_HINT: Record<JudgeType, string> = {
   LAY: 'Parent or community judge: fewer, clearer responses',
@@ -19,6 +20,7 @@ export function RoundsView() {
   const resolutions = useLiveQuery(() => db.resolutions.orderBy('createdAt').toArray(), []);
   const rounds = useLiveQuery(() => db.rounds.orderBy('createdAt').reverse().toArray(), []);
   const open = useOpenRound();
+  const label = useLabels();
 
   const [form, setForm] = useState({
     resolutionId: '',
@@ -63,8 +65,7 @@ export function RoundsView() {
     <div className="h-full overflow-auto">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[25rem_1fr]">
         <form onSubmit={start} className="card self-start p-5">
-          <h2 className="text-lg font-semibold tracking-tight">New round</h2>
-          <p className="mb-5 text-sm text-muted">Takes ten seconds. Everything except side and order is optional.</p>
+          <h2 className="mb-5 text-lg font-semibold tracking-tight">New round</h2>
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -73,7 +74,7 @@ export function RoundsView() {
                 <div className="seg w-full">
                   {(['PRO', 'CON'] as Side[]).map((s) => (
                     <button type="button" key={s} aria-pressed={form.ourSide === s} onClick={() => set('ourSide', s)}>
-                      {s === 'PRO' ? 'Pro' : 'Con'}
+                      {label.side(s)}
                     </button>
                   ))}
                 </div>
@@ -183,7 +184,7 @@ export function RoundsView() {
                         r.ourSide === 'PRO' ? 'bg-accent-soft text-accent-text' : 'bg-surface-3 text-fg'
                       }`}
                     >
-                      {r.ourSide === 'PRO' ? 'Pro' : 'Con'} · {r.speakingOrder === 1 ? '1st' : '2nd'}
+                      {label.side(r.ourSide)} · {r.speakingOrder === 1 ? '1st' : '2nd'}
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">

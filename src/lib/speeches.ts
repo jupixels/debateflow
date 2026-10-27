@@ -1,16 +1,5 @@
 import type { ResponseKind, Side, Speech } from '../types';
 
-export const SPEECH_NAMES: Record<Speech, string> = {
-  PC: 'Pro Constructive',
-  CC: 'Con Constructive',
-  PR: 'Pro Rebuttal',
-  CR: 'Con Rebuttal',
-  PS: 'Pro Summary',
-  CS: 'Con Summary',
-  PFF: 'Pro Final Focus',
-  CFF: 'Con Final Focus',
-};
-
 export const speechSide = (s: Speech): Side => (s.startsWith('P') ? 'PRO' : 'CON');
 
 /** Flow columns in speaking order for the team that speaks first. */
