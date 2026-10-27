@@ -12,7 +12,7 @@ import {
   toggleKind,
   updateCell,
 } from '../lib/repo';
-import { KIND_SHORTCUTS, SPEECH_NAMES, firstSpeakingSide, flowColumns, roundSegments, speechSide } from '../lib/speeches';
+import { KIND_SHORTCUTS, firstSpeakingSide, flowColumns, roundSegments, speechSide } from '../lib/speeches';
 import { DEFAULT_ARG_COL_WIDTH, DEFAULT_COL_WIDTH, confirmAction, toast, useApp } from '../store';
 import { type BankResponse, type FlowRow, KIND_LABELS, type Side, type Speech } from '../types';
 import { CrossfirePanel } from './CrossfirePanel';
@@ -21,6 +21,7 @@ import { QuickInsert } from './QuickInsert';
 import { SaveToBankDialog } from './SaveToBankDialog';
 import { TimerBar } from './TimerBar';
 import { EmptyState } from './ui';
+import { useLabels } from '../hooks/useLabels';
 
 type Target = { rowId: string; speech: Speech };
 const key = (rowId: string, speech: Speech) => `${rowId}:${speech}`;
@@ -70,6 +71,7 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
   const cells = useLiveQuery(() => (roundId ? db.cells.where('roundId').equals(roundId).toArray() : []), [roundId]);
   const cellMap = useMemo(() => new Map((cells ?? []).map((c) => [key(c.rowId, c.speech), c])), [cells]);
 
+  const label = useLabels();
   const handles = useRef(new Map<string, CellHandle>());
   const pendingFocus = useRef<string | null>(null);
   const lastCell = useRef<Target | null>(null);
@@ -215,7 +217,7 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
     }
     h.appendLine(text);
     h.focus();
-    toast(`Added to ${t.speech}.`, 'success');
+    toast(`Added to ${label.speech(t.speech)}.`, 'success');
   };
 
   const removeRow = async (row: FlowRow) => {
@@ -286,7 +288,7 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
               {([theirSide!, round.ourSide] as Side[]).map((s) => (
                 <button key={s} role="tab" aria-selected={sheet === s} onClick={() => setSheet(s)}>
                   {s === round.ourSide ? 'Our case' : 'Their case'}
-                  <span className="ml-1.5 text-xs text-faint">{s === 'PRO' ? 'Pro' : 'Con'}</span>
+                  <span className="ml-1.5 text-xs text-faint">{label.side(s)}</span>
                 </button>
               ))}
             </div>
@@ -323,13 +325,13 @@ export function FlowView({ onShortcuts }: { onShortcuts: () => void }) {
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-mono text-xs font-bold ${ours ? 'text-accent-text' : ''}`}>{s}</span>
+                        <span className={`font-mono text-xs font-bold ${ours ? 'text-accent-text' : ''}`}>{label.speech(s)}</span>
                         {ours && <span className="rounded bg-accent-soft px-1 text-[0.6rem] font-semibold text-accent-text">US</span>}
                         {current && <span className="ml-auto size-1.5 animate-pulse rounded-full bg-accent" title="Current speech" />}
                       </div>
-                      <div className="truncate text-[0.7rem] text-faint">{SPEECH_NAMES[s]}</div>
+                      <div className="truncate text-[0.7rem] text-faint">{label.speechName(s)}</div>
                       {current && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />}
-                      {resizeHandle(s, s)}
+                      {resizeHandle(s, label.speech(s))}
                     </div>
                   );
                 })}

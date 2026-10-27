@@ -82,6 +82,21 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </section>
 
           <section>
+            <h3 className="eyebrow mb-2.5">Side names</h3>
+            <div className="seg w-full">
+              <button aria-pressed={s.sideLabels === 'procon'} onClick={() => s.setSideLabels('procon')}>
+                Pro / Con
+              </button>
+              <button aria-pressed={s.sideLabels === 'affneg'} onClick={() => s.setSideLabels('affneg')}>
+                Aff / Neg
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              Changes the wording everywhere, including speech names (PC → AC, CFF → NFF). Your saved data isn’t changed.
+            </p>
+          </section>
+
+          <section>
             <h3 className="eyebrow mb-2.5">Flow</h3>
             <label className="label flex justify-between" htmlFor="fontSize">
               <span>Text size</span>

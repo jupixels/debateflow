@@ -4,6 +4,7 @@ import { createArgument } from '../lib/repo';
 import type { Argument, ResponseKind, Side } from '../types';
 import { ResponseEditor } from './ResponseEditor';
 import { Modal, ModalHeader } from './ui';
+import { useLabels } from '../hooks/useLabels';
 
 interface Props {
   resolutionId: string;
@@ -24,6 +25,7 @@ export function SaveToBankDialog(p: Props) {
   const [newTitle, setNewTitle] = useState(p.suggestedTitle);
   const parsed = parseCard(p.text);
   const sideArgs = p.args.filter((a) => a.side === p.sheet);
+  const label = useLabels();
 
   return (
     <Modal label="Save to bank" onClose={p.onClose} width="max-w-2xl">
@@ -34,7 +36,7 @@ export function SaveToBankDialog(p: Props) {
             Responds to
           </label>
           <select id="saveArg" className="input" value={argumentId} onChange={(e) => setArgumentId(e.target.value)}>
-            <option value="">+ New {p.sheet.toLowerCase()} argument…</option>
+            <option value="">+ New {label.side(p.sheet).toLowerCase()} argument…</option>
             {sideArgs.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title}

@@ -30,6 +30,7 @@ import { type Argument, type BankResponse, KIND_LABELS, KIND_NAMES, RESPONSE_KIN
 import { KindBadge } from './KindBadge';
 import { ResponseEditor } from './ResponseEditor';
 import { EmptyState, Modal, ModalHeader } from './ui';
+import { useLabels } from '../hooks/useLabels';
 
 export function BankView() {
   const { resolutionId, argumentId, selectResolution, selectArgument } = useApp();
@@ -223,15 +224,16 @@ function ArgumentGroup({
   onSelect: (id: string) => void;
 }) {
   const resolutionId = useApp((s) => s.resolutionId);
+  const label = useLabels();
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
   return (
     <div className="mt-4">
       <div className="mb-1 flex items-center px-1">
         <span className="eyebrow flex-1">
-          {side === 'PRO' ? 'Pro' : 'Con'} arguments <span className="ml-1 font-normal normal-case">{args.length || ''}</span>
+          {label.side(side)} arguments <span className="ml-1 font-normal normal-case">{args.length || ''}</span>
         </span>
-        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setAdding(true)} aria-label={`Add ${side.toLowerCase()} argument`}>
+        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setAdding(true)} aria-label={`Add ${label.side(side).toLowerCase()} argument`}>
           <Plus size={15} />
         </button>
       </div>
@@ -259,7 +261,7 @@ function ArgumentGroup({
           <input
             autoFocus={adding}
             className="input h-8"
-            placeholder={`+ New ${side.toLowerCase()} argument`}
+            placeholder={`+ New ${label.side(side).toLowerCase()} argument`}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => !title && setAdding(false)}
@@ -274,6 +276,7 @@ function ArgumentGroup({
 function ArgumentDetail({ argument }: { argument: Argument }) {
   const responses = useLiveQuery(() => db.responses.where('argumentId').equals(argument.id).sortBy('createdAt'), [argument.id]);
   const questions = useLiveQuery(() => db.questions.where('argumentId').equals(argument.id).sortBy('createdAt'), [argument.id]);
+  const label = useLabels();
   const [tab, setTab] = useState<'responses' | 'questions'>('responses');
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState<ResponseKind | 'ALL'>('ALL');
@@ -296,7 +299,7 @@ function ArgumentDetail({ argument }: { argument: Argument }) {
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="eyebrow mb-1">{argument.side === 'PRO' ? 'Pro' : 'Con'} argument</div>
+          <div className="eyebrow mb-1">{label.side(argument.side)} argument</div>
           {renaming ? (
             <form
               onSubmit={async (e) => {

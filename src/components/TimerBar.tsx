@@ -1,7 +1,8 @@
 import { MessagesSquare, Pause, Play, RotateCcw, SkipForward } from 'lucide-react';
 import { useTicker } from '../hooks/useTicker';
 import { formatMs, isRunning, remaining } from '../lib/timer';
-import { SPEECH_NAMES, type TimedSegment, speechSide } from '../lib/speeches';
+import { type TimedSegment, speechSide } from '../lib/speeches';
+import { useLabels } from '../hooks/useLabels';
 import { useApp } from '../store';
 import type { Round, Side } from '../types';
 
@@ -9,6 +10,7 @@ export function TimerBar({ round, segments }: { round: Round; segments: TimedSeg
   const { timers, selectSegment, toggleSpeech, resetSpeech, togglePrep, resetPrep, tickPrep } = useApp();
   const running = isRunning(timers.speech) || isRunning(timers.prep.PRO) || isRunning(timers.prep.CON);
   useTicker(running, 200, tickPrep);
+  const label = useLabels();
   const now = Date.now();
 
   const current = segments.findIndex((s) => s.id === timers.segmentId);
@@ -30,7 +32,7 @@ export function TimerBar({ round, segments }: { round: Round; segments: TimedSeg
             <li key={s.id}>
               <button
                 onClick={() => selectSegment(s.id, s.seconds)}
-                title={`${s.speech ? SPEECH_NAMES[s.speech] : s.label} · ${s.seconds / 60} min`}
+                title={`${s.speech ? label.speechName(s.speech) : s.label} · ${s.seconds / 60} min`}
                 aria-current={active ? 'step' : undefined}
                 className={`relative flex h-7 items-center gap-1 rounded-md px-2 font-mono text-[0.7rem] font-semibold whitespace-nowrap transition-colors ${
                   active
@@ -43,7 +45,7 @@ export function TimerBar({ round, segments }: { round: Round; segments: TimedSeg
                 }`}
               >
                 {cx && <MessagesSquare size={11} />}
-                {s.speech ?? s.id}
+                {s.speech ? label.speech(s.speech) : s.id}
               </button>
             </li>
           );
@@ -65,7 +67,7 @@ export function TimerBar({ round, segments }: { round: Round; segments: TimedSeg
               />
             </div>
           </div>
-          <div className="mt-1 truncate text-[0.68rem] text-faint">{seg ? (seg.speech ? SPEECH_NAMES[seg.speech] : seg.label) : ''}</div>
+          <div className="mt-1 truncate text-[0.68rem] text-faint">{seg ? (seg.speech ? label.speechName(seg.speech) : seg.label) : ''}</div>
         </div>
         <div className="flex items-center gap-1">
           <button className="btn btn-primary btn-icon size-9 rounded-full" onClick={toggleSpeech} title="Start / pause (Space)" aria-label={isRunning(timers.speech) ? 'Pause' : 'Start'}>

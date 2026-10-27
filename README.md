@@ -23,7 +23,7 @@ Then click **Install app** in the top bar (or the install icon at the right of t
 2. **Rounds**: pick side, speaking order, judge type and prep time, then **Start flowing**.
 3. **Flow**: one sheet per case, opening on *their* case. Columns follow the real speaking order and your speeches are marked **US**. Link a row to a bank argument (inserting from the bank links it for you). **Drag a column's right edge to resize it**; double-click to reset.
 4. **Crossfire**: open the panel with **Crossfire** or `X` (it opens by itself when the timer reaches a crossfire). Log each question and answer, star the concessions, and click **Insert** to drop a concession into the flow cell you last used. Concessions also show up first when you press `/`. Your prepared CX questions from the bank are listed there too, with the arguments they're actually running on top.
-5. **Settings** (gear icon): light/dark/system mode, a **color wheel** for the theme color, flow text size, and backup/import.
+5. **Settings** (gear icon): light/dark/system mode, a **color wheel** for the theme color, **Pro/Con or Aff/Neg** wording (speech names follow: PC → AC, CFF → NFF), flow text size, and backup/import.
 
 ### Shortcuts
 

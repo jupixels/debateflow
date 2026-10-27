@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type Clock, clampAtZero, makeClock, pause, reset, toggle } from './lib/timer';
+import type { SideLabels } from './lib/labels';
 import type { Side } from './types';
 
 export type View = 'bank' | 'rounds' | 'flow';
@@ -31,6 +32,7 @@ interface AppState {
   themeMode: ThemeMode;
   accent: Accent;
   flowFontSize: number;
+  sideLabels: SideLabels;
   /** Flow column widths in px, keyed by speech code or 'arg'. */
   colWidths: Record<string, number>;
   cxOpen: boolean;
@@ -46,6 +48,7 @@ interface AppState {
   setThemeMode: (m: ThemeMode) => void;
   setAccent: (a: Accent) => void;
   setFlowFontSize: (n: number) => void;
+  setSideLabels: (l: SideLabels) => void;
   setColWidth: (key: string, px: number | null) => void;
   resetColWidths: () => void;
   setCxOpen: (open: boolean) => void;
@@ -81,6 +84,7 @@ export const useApp = create<AppState>()(
       themeMode: 'dark',
       accent: DEFAULT_ACCENT,
       flowFontSize: 14,
+      sideLabels: 'procon',
       colWidths: {},
       cxOpen: false,
       cxAuto: true,
@@ -93,6 +97,7 @@ export const useApp = create<AppState>()(
       setView: (view) => set({ view }),
       setThemeMode: (themeMode) => set({ themeMode }),
       setAccent: (accent) => set({ accent }),
+      setSideLabels: (sideLabels) => set({ sideLabels }),
       setFlowFontSize: (flowFontSize) => set({ flowFontSize: Math.min(22, Math.max(11, flowFontSize)) }),
       setColWidth: (key, px) =>
         set((s) => {
