@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Argument, BankResponse, FlowCell, FlowRow, Resolution, Round } from './types';
+import type { Argument, BankResponse, CxEntry, CxQuestion, FlowCell, FlowRow, Resolution, Round } from './types';
 
 export class FlowDB extends Dexie {
   resolutions!: EntityTable<Resolution, 'id'>;
@@ -8,6 +8,8 @@ export class FlowDB extends Dexie {
   rounds!: EntityTable<Round, 'id'>;
   rows!: EntityTable<FlowRow, 'id'>;
   cells!: EntityTable<FlowCell, 'id'>;
+  questions!: EntityTable<CxQuestion, 'id'>;
+  cx!: EntityTable<CxEntry, 'id'>;
 
   constructor(name = 'rebuttal-flow') {
     super(name);
@@ -18,6 +20,10 @@ export class FlowDB extends Dexie {
       rounds: 'id, resolutionId, createdAt',
       rows: 'id, roundId, [roundId+sheet]',
       cells: 'id, roundId, rowId, [rowId+speech]',
+    });
+    this.version(2).stores({
+      questions: 'id, argumentId',
+      cx: 'id, roundId',
     });
   }
 }

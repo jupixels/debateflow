@@ -1,13 +1,21 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { ArrowRight, CalendarDays, Gavel, Play, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '../db';
-import { createRound, createResolution, deleteRound } from '../lib/repo';
-import { useApp } from '../store';
-import type { JudgeType, Side } from '../types';
 import { useOpenRound } from '../hooks/useOpenRound';
+import { createResolution, createRound, deleteRound } from '../lib/repo';
+import { confirmAction, toast, useApp } from '../store';
+import type { JudgeType, Side } from '../types';
+import { EmptyState } from './ui';
+
+const JUDGE_HINT: Record<JudgeType, string> = {
+  LAY: 'Parent or community judge: fewer, clearer responses',
+  FLOW: 'Flows the round, wants clean extensions',
+  TECH: 'Fast, line-by-line, evaluates everything',
+};
 
 export function RoundsView() {
-  const resolutionId = useApp((s) => s.resolutionId);
+  const { resolutionId, roundId: openRoundId, closeRound } = useApp();
   const resolutions = useLiveQuery(() => db.resolutions.orderBy('createdAt').toArray(), []);
   const rounds = useLiveQuery(() => db.rounds.orderBy('createdAt').reverse().toArray(), []);
   const open = useOpenRound();
@@ -26,11 +34,12 @@ export function RoundsView() {
   });
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const chosenResolution = form.resolutionId || resolutionId || resolutions?.[0]?.id || '';
+  const newResolution = chosenResolution === '__new' || !chosenResolution;
 
   const start = async (e: React.FormEvent) => {
     e.preventDefault();
     let resId = chosenResolution;
-    if (resId === '__new' || !resId) {
+    if (newResolution) {
       if (!form.newResolution.trim()) return;
       resId = (await createResolution(form.newResolution)).id;
     }
@@ -48,173 +57,184 @@ export function RoundsView() {
     open(round);
   };
 
-  const resTitle = (id: string) => resolutions?.find((r) => r.id === id)?.title ?? '—';
+  const resTitle = (id: string) => resolutions?.find((r) => r.id === id)?.title ?? 'Deleted resolution';
 
   return (
-    <div className="grid h-full gap-3 overflow-auto p-3 lg:grid-cols-[26rem_1fr]">
-      <form onSubmit={start} className="panel space-y-3 self-start p-4">
-        <h2 className="text-base font-semibold">New round</h2>
-        <div>
-          <label className="label" htmlFor="res">
-            Resolution
-          </label>
-          <select id="res" className="input" value={chosenResolution} onChange={(e) => set('resolutionId', e.target.value)}>
-            {resolutions?.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.title}
-              </option>
-            ))}
-            <option value="__new">+ New resolution…</option>
-          </select>
-          {(chosenResolution === '__new' || !chosenResolution) && (
-            <input
-              className="input mt-1"
-              placeholder="Resolution text"
-              value={form.newResolution}
-              onChange={(e) => set('newResolution', e.target.value)}
-              required
-            />
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="label" htmlFor="tournament">
-              Tournament
-            </label>
-            <input id="tournament" className="input" value={form.tournament} onChange={(e) => set('tournament', e.target.value)} />
-          </div>
-          <div>
-            <label className="label" htmlFor="roundName">
-              Round
-            </label>
-            <input
-              id="roundName"
-              className="input"
-              placeholder="R3, Octas…"
-              value={form.roundName}
-              onChange={(e) => set('roundName', e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <fieldset>
-            <legend className="label">Our side</legend>
-            <Segmented value={form.ourSide} options={['PRO', 'CON']} onChange={(v) => set('ourSide', v)} />
-          </fieldset>
-          <fieldset>
-            <legend className="label">We speak</legend>
-            <Segmented
-              value={form.speakingOrder}
-              options={[1, 2]}
-              labels={{ 1: 'First', 2: 'Second' }}
-              onChange={(v) => set('speakingOrder', v)}
-            />
-          </fieldset>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="label" htmlFor="opponents">
-              Opponents
-            </label>
-            <input id="opponents" className="input" value={form.opponents} onChange={(e) => set('opponents', e.target.value)} />
-          </div>
-          <div>
-            <label className="label" htmlFor="judge">
-              Judge
-            </label>
-            <input id="judge" className="input" value={form.judge} onChange={(e) => set('judge', e.target.value)} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <fieldset>
-            <legend className="label">Judge type</legend>
-            <Segmented
-              value={form.judgeType}
-              options={['LAY', 'FLOW', 'TECH']}
-              labels={{ LAY: 'Lay', FLOW: 'Flow', TECH: 'Tech' }}
-              onChange={(v) => set('judgeType', v)}
-            />
-          </fieldset>
-          <div>
-            <label className="label" htmlFor="prep">
-              Prep (min/team)
-            </label>
-            <input
-              id="prep"
-              type="number"
-              min={0}
-              max={10}
-              step={0.5}
-              className="input"
-              value={form.prepMinutes}
-              onChange={(e) => set('prepMinutes', Number(e.target.value))}
-            />
-          </div>
-        </div>
-        <button className="btn btn-primary w-full justify-center py-2">Start flowing →</button>
-      </form>
+    <div className="h-full overflow-auto">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[25rem_1fr]">
+        <form onSubmit={start} className="card self-start p-5">
+          <h2 className="text-lg font-semibold tracking-tight">New round</h2>
+          <p className="mb-5 text-sm text-muted">Takes ten seconds. Everything except side and order is optional.</p>
 
-      <section className="panel self-start p-4">
-        <h2 className="mb-2 text-base font-semibold">Rounds</h2>
-        {rounds?.length === 0 && <p className="text-sm text-slate-500">No rounds yet.</p>}
-        <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-          {rounds?.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center gap-2 py-2">
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">
-                  {[r.tournament, r.roundName].filter(Boolean).join(' · ') || 'Untitled round'}
-                  <span className="ml-2 text-xs text-slate-500">
-                    {r.ourSide} · speaking {r.speakingOrder === 1 ? 'first' : 'second'}
-                    {r.opponents && ` · vs ${r.opponents}`}
-                  </span>
-                </div>
-                <div className="truncate text-xs text-slate-500">
-                  {resTitle(r.resolutionId)} · {new Date(r.createdAt).toLocaleDateString()}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="label">Our side</span>
+                <div className="seg w-full">
+                  {(['PRO', 'CON'] as Side[]).map((s) => (
+                    <button type="button" key={s} aria-pressed={form.ourSide === s} onClick={() => set('ourSide', s)}>
+                      {s === 'PRO' ? 'Pro' : 'Con'}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <button className="btn" onClick={() => open(r)}>
-                Open
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={() => confirm('Delete this round and its flow?') && deleteRound(r.id)}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+              <div>
+                <span className="label">We speak</span>
+                <div className="seg w-full">
+                  {([1, 2] as const).map((o) => (
+                    <button type="button" key={o} aria-pressed={form.speakingOrder === o} onClick={() => set('speakingOrder', o)}>
+                      {o === 1 ? 'First' : 'Second'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="res">
+                Resolution
+              </label>
+              <select id="res" className="input" value={chosenResolution} onChange={(e) => set('resolutionId', e.target.value)}>
+                {resolutions?.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+                <option value="__new">+ New resolution…</option>
+              </select>
+              {newResolution && (
+                <input
+                  className="input mt-2"
+                  placeholder="Resolved: …"
+                  value={form.newResolution}
+                  onChange={(e) => set('newResolution', e.target.value)}
+                  required
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <Field id="tournament" label="Tournament" value={form.tournament} onChange={(v) => set('tournament', v)} />
+              <Field id="roundName" label="Round" placeholder="R3, Octas" value={form.roundName} onChange={(v) => set('roundName', v)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field id="opponents" label="Opponents" placeholder="School AB" value={form.opponents} onChange={(v) => set('opponents', v)} />
+              <Field id="judge" label="Judge" value={form.judge} onChange={(v) => set('judge', v)} />
+            </div>
+
+            <div>
+              <span className="label">Judge type</span>
+              <div className="seg w-full">
+                {(['LAY', 'FLOW', 'TECH'] as JudgeType[]).map((j) => (
+                  <button type="button" key={j} aria-pressed={form.judgeType === j} onClick={() => set('judgeType', j)}>
+                    {j[0] + j.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-faint">{JUDGE_HINT[form.judgeType]}</p>
+            </div>
+
+            <div>
+              <label className="label flex justify-between" htmlFor="prep">
+                <span>Prep time per team</span>
+                <span className="font-mono text-fg">{form.prepMinutes} min</span>
+              </label>
+              <input
+                id="prep"
+                type="range"
+                min={0}
+                max={6}
+                step={0.5}
+                className="w-full accent-[var(--accent)]"
+                value={form.prepMinutes}
+                onChange={(e) => set('prepMinutes', Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <button className="btn btn-primary mt-6 h-10 w-full text-[0.95rem]">
+            Start flowing <ArrowRight size={16} />
+          </button>
+        </form>
+
+        <section className="min-w-0">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight">Your rounds</h2>
+          {rounds?.length === 0 && (
+            <div className="card">
+              <EmptyState icon={<CalendarDays size={20} />} title="No rounds yet">
+                Rounds you flow are saved here so you can look back at them before elims.
+              </EmptyState>
+            </div>
+          )}
+          <ul className="grid gap-3 xl:grid-cols-2">
+            {rounds?.map((r) => {
+              const isOpen = r.id === openRoundId;
+              return (
+                <li key={r.id} className={`group card flex flex-col p-4 ${isOpen ? 'ring-2 ring-accent' : ''}`}>
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold">
+                        {[r.tournament, r.roundName].filter(Boolean).join(' · ') || 'Untitled round'}
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-muted">{resTitle(r.resolutionId)}</div>
+                    </div>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                        r.ourSide === 'PRO' ? 'bg-accent-soft text-accent-text' : 'bg-surface-3 text-fg'
+                      }`}
+                    >
+                      {r.ourSide === 'PRO' ? 'Pro' : 'Con'} · {r.speakingOrder === 1 ? '1st' : '2nd'}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                    {r.opponents && (
+                      <span className="flex items-center gap-1">
+                        <Users size={12} /> {r.opponents}
+                      </span>
+                    )}
+                    {r.judge && (
+                      <span className="flex items-center gap-1">
+                        <Gavel size={12} /> {r.judge}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <CalendarDays size={12} /> {new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <button className={`btn btn-sm ${isOpen ? 'btn-primary' : ''}`} onClick={() => open(r)}>
+                      <Play size={13} /> {isOpen ? 'Resume' : 'Open'}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm btn-danger ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100"
+                      onClick={async () => {
+                        if (await confirmAction('Delete this round?', 'Its flow and crossfire notes are deleted. Your bank is not affected.')) {
+                          if (isOpen) closeRound();
+                          await deleteRound(r.id);
+                          toast('Round deleted.');
+                        }
+                      }}
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }
 
-function Segmented<T extends string | number>({
-  value,
-  options,
-  labels,
-  onChange,
-}: {
-  value: T;
-  options: T[];
-  labels?: Partial<Record<T, string>>;
-  onChange: (v: T) => void;
-}) {
+function Field({ id, label, value, onChange, placeholder }: { id: string; label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="flex overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
-      {options.map((o) => (
-        <button
-          type="button"
-          key={String(o)}
-          aria-pressed={o === value}
-          onClick={() => onChange(o)}
-          className={`flex-1 px-2 py-1 text-sm ${
-            o === value ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800'
-          }`}
-        >
-          {labels?.[o] ?? String(o)}
-        </button>
-      ))}
+    <div>
+      <label className="label" htmlFor={id}>
+        {label}
+      </label>
+      <input id={id} className="input" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

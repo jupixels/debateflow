@@ -1,6 +1,94 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Every neutral is tinted very slightly toward the accent hue, so changing
+ * the accent on the color wheel re-tones the whole app, not just buttons.
+ * --accent-h / --accent-c are set at runtime from the settings.
+ */
+:root {
+  --accent-h: 250;
+  --accent-c: 0.16;
+  --flow-font: 14px;
+
+  --bg: oklch(0.975 0.004 var(--accent-h));
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.965 0.006 var(--accent-h));
+  --surface-3: oklch(0.93 0.009 var(--accent-h));
+  --line: oklch(0.91 0.008 var(--accent-h));
+  --line-strong: oklch(0.84 0.012 var(--accent-h));
+  --fg: oklch(0.23 0.02 var(--accent-h));
+  --muted: oklch(0.5 0.018 var(--accent-h));
+  --faint: oklch(0.66 0.014 var(--accent-h));
+
+  --accent: oklch(0.56 var(--accent-c) var(--accent-h));
+  --accent-hover: oklch(0.5 var(--accent-c) var(--accent-h));
+  --accent-ink: oklch(0.99 0.01 var(--accent-h));
+  --accent-text: oklch(0.47 var(--accent-c) var(--accent-h));
+  --accent-soft: oklch(0.56 var(--accent-c) var(--accent-h) / 0.11);
+  --accent-softer: oklch(0.56 var(--accent-c) var(--accent-h) / 0.05);
+
+  --danger: oklch(0.58 0.2 25);
+  --warn: oklch(0.7 0.16 70);
+  --ok: oklch(0.62 0.15 155);
+  --shadow: 0 1px 2px oklch(0.2 0.02 var(--accent-h) / 0.06), 0 4px 16px -4px oklch(0.2 0.02 var(--accent-h) / 0.08);
+  --shadow-lg: 0 24px 64px -12px oklch(0.15 0.03 var(--accent-h) / 0.35);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: oklch(0.155 0.01 var(--accent-h));
+  --surface: oklch(0.195 0.012 var(--accent-h));
+  --surface-2: oklch(0.225 0.014 var(--accent-h));
+  --surface-3: oklch(0.27 0.016 var(--accent-h));
+  --line: oklch(0.28 0.014 var(--accent-h));
+  --line-strong: oklch(0.36 0.016 var(--accent-h));
+  --fg: oklch(0.95 0.006 var(--accent-h));
+  --muted: oklch(0.72 0.014 var(--accent-h));
+  --faint: oklch(0.54 0.014 var(--accent-h));
+
+  --accent: oklch(0.72 var(--accent-c) var(--accent-h));
+  --accent-hover: oklch(0.78 var(--accent-c) var(--accent-h));
+  --accent-ink: oklch(0.17 0.03 var(--accent-h));
+  --accent-text: oklch(0.8 var(--accent-c) var(--accent-h));
+  --accent-soft: oklch(0.72 var(--accent-c) var(--accent-h) / 0.15);
+  --accent-softer: oklch(0.72 var(--accent-c) var(--accent-h) / 0.06);
+
+  --danger: oklch(0.7 0.17 25);
+  --warn: oklch(0.8 0.15 75);
+  --ok: oklch(0.75 0.15 155);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 4px 16px -4px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 24px 64px -12px oklch(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-softer: var(--accent-softer);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-lg);
+}
 
 @layer base {
   html,
@@ -9,30 +97,114 @@
     height: 100%;
   }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    @apply bg-bg font-sans text-fg antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700;
+    @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-fg shadow-xs transition-colors select-none hover:border-line-strong hover:bg-surface-2 active:bg-surface-3 disabled:pointer-events-none disabled:opacity-45;
   }
   .btn-primary {
-    @apply border-sky-600 bg-sky-600 text-white hover:bg-sky-500 dark:border-sky-500 dark:bg-sky-600 dark:hover:bg-sky-500;
+    @apply border-transparent bg-accent text-accent-ink hover:border-transparent hover:bg-accent-hover active:bg-accent-hover;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-surface-3/70;
   }
   .btn-danger {
-    @apply text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950;
+    @apply text-danger hover:bg-danger/10;
+  }
+  .btn-sm {
+    @apply h-7 gap-1 rounded-md px-2 text-xs;
+  }
+  .btn-icon {
+    @apply w-8 px-0;
+  }
+  .btn-sm.btn-icon {
+    @apply w-7;
   }
   .input {
-    @apply w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-900;
+    @apply h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-fg shadow-xs transition-colors outline-none placeholder:text-faint hover:border-line-strong focus:border-accent focus:ring-3 focus:ring-accent-soft;
+  }
+  textarea.input {
+    @apply h-auto py-2 leading-relaxed;
+  }
+  select.input {
+    @apply pr-8;
   }
   .label {
-    @apply mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400;
+    @apply mb-1.5 block text-xs font-medium text-muted;
   }
-  .panel {
-    @apply rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-card;
+  }
+  .eyebrow {
+    @apply text-[0.68rem] font-semibold tracking-[0.08em] text-faint uppercase;
+  }
+  .seg {
+    @apply inline-flex rounded-lg border border-line bg-surface-2 p-0.5;
+  }
+  .seg > button {
+    @apply flex-1 rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-fg;
+  }
+  .seg > button[aria-pressed='true'],
+  .seg > button[aria-selected='true'] {
+    @apply bg-surface text-fg shadow-card;
+  }
+  .nav-item {
+    @apply flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-surface-3/60;
+  }
+  .nav-item[aria-current='true'] {
+    @apply bg-accent-soft font-medium text-accent-text;
   }
   kbd {
-    @apply rounded border border-slate-300 bg-slate-100 px-1 font-mono text-[0.7rem] dark:border-slate-600 dark:bg-slate-800;
+    @apply inline-flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded border border-line-strong border-b-2 bg-surface-2 px-1 font-mono text-[0.65rem] font-medium text-muted;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+}
+@utility animate-pop {
+  animation: pop-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@utility animate-fade {
+  animation: fade-in 140ms ease-out;
+}
+@utility animate-slide {
+  animation: slide-in-right 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
   }
 }

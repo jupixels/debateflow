@@ -1,7 +1,7 @@
 import { db } from '../db';
-import type { Argument, BankResponse, FlowCell, FlowRow, Resolution, Round } from '../types';
+import type { Argument, BankResponse, CxEntry, CxQuestion, FlowCell, FlowRow, Resolution, Round } from '../types';
 
-export const EXPORT_VERSION = 1;
+export const EXPORT_VERSION = 2;
 
 export interface ExportFile {
   app: 'rebuttal-flow';
@@ -13,12 +13,14 @@ export interface ExportFile {
   rounds: Round[];
   rows: FlowRow[];
   cells: FlowCell[];
+  questions: CxQuestion[];
+  cx: CxEntry[];
 }
 
-const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells'] as const;
+const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells', 'questions', 'cx'] as const;
 
 export async function exportAll(): Promise<ExportFile> {
-  const [resolutions, args, responses, rounds, rows, cells] = await Promise.all(
+  const [resolutions, args, responses, rounds, rows, cells, questions, cx] = await Promise.all(
     TABLES.map((t) => db.table(t).toArray()),
   );
   return {
@@ -31,6 +33,8 @@ export async function exportAll(): Promise<ExportFile> {
     rounds,
     rows,
     cells,
+    questions,
+    cx,
   } as ExportFile;
 }
 
@@ -93,9 +97,11 @@ export async function exportBank(resolutionId?: string): Promise<ExportFile> {
     resolutions,
     args,
     responses: all.responses.filter((r) => argIds.has(r.argumentId)),
+    questions: all.questions.filter((q) => argIds.has(q.argumentId)),
     rounds: [],
     rows: [],
     cells: [],
+    cx: [],
   };
 }
 
