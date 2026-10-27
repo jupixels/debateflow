@@ -14,6 +14,11 @@ describe('clock', () => {
     expect(remaining(c, 105_000)).toBe(45_000);
   });
 
+  it('never shows more time than it started with when read with an older timestamp', () => {
+    const c = start(makeClock(240_000), 10_000);
+    expect(remaining(c, 5_000)).toBe(240_000);
+  });
+
   it('goes negative for overtime and resets', () => {
     const c = start(makeClock(1000), 0);
     expect(remaining(c, 3000)).toBe(-2000);

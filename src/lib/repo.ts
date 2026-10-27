@@ -2,6 +2,8 @@ import { db, newId } from '../db';
 import type {
   Argument,
   BankResponse,
+  CxEntry,
+  CxQuestion,
   FlowCell,
   FlowRow,
   Resolution,
@@ -20,9 +22,10 @@ export async function createResolution(title: string, monthRange?: string): Prom
 }
 
 export async function deleteResolution(id: string) {
-  await db.transaction('rw', [db.resolutions, db.args, db.responses], async () => {
+  await db.transaction('rw', [db.resolutions, db.args, db.responses, db.questions], async () => {
     const argIds = (await db.args.where('resolutionId').equals(id).toArray()).map((a) => a.id);
     await db.responses.where('argumentId').anyOf(argIds).delete();
+    await db.questions.where('argumentId').anyOf(argIds).delete();
     await db.args.bulkDelete(argIds);
     await db.resolutions.delete(id);
   });
@@ -35,8 +38,9 @@ export async function createArgument(resolutionId: string, side: Side, title: st
 }
 
 export async function deleteArgument(id: string) {
-  await db.transaction('rw', [db.args, db.responses, db.rows], async () => {
+  await db.transaction('rw', [db.args, db.responses, db.questions, db.rows], async () => {
     await db.responses.where('argumentId').equals(id).delete();
+    await db.questions.where('argumentId').equals(id).delete();
     await db.args.delete(id);
     // Unlink flow rows that pointed at this argument.
     await db.rows.filter((r) => r.argumentId === id).modify({ argumentId: undefined });
@@ -78,8 +82,9 @@ export async function createRound(draft: RoundDraft): Promise<Round> {
 }
 
 export async function deleteRound(id: string) {
-  await db.transaction('rw', [db.rounds, db.rows, db.cells], async () => {
+  await db.transaction('rw', [db.rounds, db.rows, db.cells, db.cx], async () => {
     await db.cells.where('roundId').equals(id).delete();
+    await db.cx.where('roundId').equals(id).delete();
     await db.rows.where('roundId').equals(id).delete();
     await db.rounds.delete(id);
   });
@@ -146,3 +151,30 @@ export async function recordInsert(roundId: string, rowId: string, speech: Speec
 
 export const toggleKind = (current: ResponseKind | undefined, next: ResponseKind) =>
   current === next ? undefined : next;
+
+export const renameArgument = (id: string, title: string) => db.args.update(id, { title: title.trim() });
+
+// ---- Crossfire ----
+
+export async function createQuestion(argumentId: string, text: string): Promise<CxQuestion> {
+  const q: CxQuestion = { id: newId(), argumentId, text: text.trim(), createdAt: Date.now() };
+  await db.questions.add(q);
+  return q;
+}
+
+export const updateQuestion = (id: string, text: string) => db.questions.update(id, { text: text.trim() });
+export const deleteQuestion = (id: string) => db.questions.delete(id);
+
+export async function addCxEntry(entry: Omit<CxEntry, 'id' | 'createdAt'>): Promise<CxEntry> {
+  const e: CxEntry = { ...entry, id: newId(), createdAt: Date.now() };
+  await db.cx.add(e);
+  return e;
+}
+
+export const updateCxEntry = (id: string, patch: Partial<Pick<CxEntry, 'question' | 'answer' | 'concession' | 'asker'>>) =>
+  db.cx.update(id, patch);
+export const deleteCxEntry = (id: string) => db.cx.delete(id);
+
+/** How a crossfire concession reads when dropped onto the flow. */
+export const formatConcession = (e: CxEntry) =>
+  `[CX ${e.segment}] ${e.answer.trim() || e.question.trim()}`;

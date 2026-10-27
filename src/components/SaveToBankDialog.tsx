@@ -3,6 +3,7 @@ import { parseCard } from '../lib/cardParser';
 import { createArgument } from '../lib/repo';
 import type { Argument, ResponseKind, Side } from '../types';
 import { ResponseEditor } from './ResponseEditor';
+import { Modal, ModalHeader } from './ui';
 
 interface Props {
   resolutionId: string;
@@ -25,58 +26,46 @@ export function SaveToBankDialog(p: Props) {
   const sideArgs = p.args.filter((a) => a.side === p.sheet);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-auto bg-black/30 p-4 pt-[8vh]" onMouseDown={p.onClose}>
-      <div
-        className="panel w-full max-w-2xl p-4 shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === 'Escape' && p.onClose()}
-        role="dialog"
-        aria-label="Save to bank"
-      >
-        <h2 className="mb-3 text-base font-semibold">Save to bank</h2>
-        <div className="mb-3 flex flex-wrap items-end gap-2">
-          <div className="min-w-48 flex-1">
-            <label className="label" htmlFor="saveArg">
-              Responds to
-            </label>
-            <select id="saveArg" className="input" value={argumentId} onChange={(e) => setArgumentId(e.target.value)}>
-              <option value="">+ New argument…</option>
-              {sideArgs.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          {!argumentId && (
-            <form
-              className="flex flex-[2] gap-1"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!newTitle.trim()) return;
-                setArgumentId((await createArgument(p.resolutionId, p.sheet, newTitle)).id);
-              }}
-            >
-              <input
-                autoFocus
-                className="input"
-                placeholder={`${p.sheet} argument title`}
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-              />
-              <button className="btn">Create</button>
-            </form>
-          )}
+    <Modal label="Save to bank" onClose={p.onClose} width="max-w-2xl">
+      <ModalHeader title="Save to bank" subtitle="Reuse this response next time you hit the argument." onClose={p.onClose} />
+      <div className="flex flex-wrap items-end gap-2 border-b border-line bg-surface-2 px-5 py-4">
+        <div className="min-w-48 flex-1">
+          <label className="label" htmlFor="saveArg">
+            Responds to
+          </label>
+          <select id="saveArg" className="input" value={argumentId} onChange={(e) => setArgumentId(e.target.value)}>
+            <option value="">+ New {p.sheet.toLowerCase()} argument…</option>
+            {sideArgs.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.title}
+              </option>
+            ))}
+          </select>
         </div>
-        {argumentId && (
-          <ResponseEditor
-            key={argumentId}
-            argumentId={argumentId}
-            initial={{ ...parsed, kind: p.kind ?? 'OTHER', cite: parsed.cite, url: parsed.url }}
-            onDone={(saved) => (saved ? p.onSaved(argumentId) : p.onClose())}
-          />
+        {!argumentId && (
+          <form
+            className="flex min-w-60 flex-[2] gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newTitle.trim()) return;
+              setArgumentId((await createArgument(p.resolutionId, p.sheet, newTitle)).id);
+            }}
+          >
+            <input autoFocus className="input" placeholder="Argument title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            <button className="btn btn-primary h-9">Create</button>
+          </form>
         )}
       </div>
-    </div>
+      {argumentId ? (
+        <ResponseEditor
+          key={argumentId}
+          argumentId={argumentId}
+          initial={{ ...parsed, kind: p.kind ?? 'OTHER' }}
+          onDone={(saved) => (saved ? p.onSaved(argumentId) : p.onClose())}
+        />
+      ) : (
+        <p className="px-5 py-6 text-sm text-muted">Pick the argument this answers, or create it, then fill in the response.</p>
+      )}
+    </Modal>
   );
 }

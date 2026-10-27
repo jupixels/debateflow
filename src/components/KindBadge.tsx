@@ -1,18 +1,28 @@
 import { KIND_LABELS, KIND_NAMES, type ResponseKind } from '../types';
 
-const COLORS: Record<ResponseKind, string> = {
-  NU: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200',
-  DELINK: 'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-200',
-  LINK_TURN: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200',
-  IMPACT_TURN: 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/60 dark:text-fuchsia-200',
-  MITIGATION: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200',
-  WEIGHING: 'bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-200',
-  OTHER: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+// Fixed hues so a type always reads the same, whatever the theme color.
+const HUES: Record<ResponseKind, number> = {
+  NU: 75,
+  DELINK: 230,
+  LINK_TURN: 20,
+  IMPACT_TURN: 330,
+  MITIGATION: 155,
+  WEIGHING: 290,
+  OTHER: 260,
 };
 
-export function KindBadge({ kind }: { kind: ResponseKind }) {
+export function KindBadge({ kind, className = '' }: { kind: ResponseKind; className?: string }) {
+  const h = HUES[kind];
+  const c = kind === 'OTHER' ? 0.02 : 0.14;
   return (
-    <span title={KIND_NAMES[kind]} className={`shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-bold ${COLORS[kind]}`}>
+    <span
+      title={KIND_NAMES[kind]}
+      className={`inline-flex h-[1.15rem] shrink-0 items-center rounded px-1.5 font-mono text-[0.62rem] font-bold tracking-wide ${className}`}
+      style={{
+        color: `light-dark(oklch(0.45 ${c} ${h}), oklch(0.85 ${c} ${h}))`,
+        background: `light-dark(oklch(0.93 ${c / 2.5} ${h}), oklch(0.35 ${c / 1.6} ${h} / 0.6))`,
+      }}
+    >
       {KIND_LABELS[kind]}
     </span>
   );

@@ -10,7 +10,8 @@ export const makeClock = (durationMs: number): Clock => ({ durationMs, elapsedMs
 export const isRunning = (c: Clock) => c.startedAt !== null;
 
 export function elapsed(c: Clock, now: number): number {
-  return c.elapsedMs + (c.startedAt !== null ? now - c.startedAt : 0);
+  // A `now` read before the clock started must not count as negative time.
+  return c.elapsedMs + (c.startedAt !== null ? Math.max(0, now - c.startedAt) : 0);
 }
 
 /** Remaining time; negative means overtime. */

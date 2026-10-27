@@ -1,7 +1,10 @@
+import { ClipboardPaste } from 'lucide-react';
 import { useState } from 'react';
 import { parseCard } from '../lib/cardParser';
 import { saveResponse } from '../lib/repo';
+import { toast } from '../store';
 import { type BankResponse, KIND_NAMES, RESPONSE_KINDS, type ResponseKind } from '../types';
+import { KindBadge } from './KindBadge';
 
 interface Props {
   argumentId: string;
@@ -42,18 +45,18 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
       text,
       strength,
     });
+    toast(initial?.id ? 'Response updated.' : 'Saved to your bank.', 'success');
     onDone(saved);
   };
 
   return (
     <form
-      className="mb-3 space-y-2 rounded-md border border-sky-300 bg-sky-50/50 p-3 dark:border-sky-800 dark:bg-sky-950/30"
+      className="space-y-4 p-5"
       onSubmit={(e) => {
         e.preventDefault();
         save();
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') onDone();
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           save();
@@ -61,14 +64,14 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
       }}
     >
       {!initial?.id && (
-        <div>
-          <label className="label" htmlFor="paste">
-            Paste a card (tag, cite, text) to auto-fill
+        <div className="rounded-lg border border-dashed border-line-strong bg-surface-2 p-3">
+          <label className="label flex items-center gap-1.5" htmlFor="paste">
+            <ClipboardPaste size={13} /> Paste a whole card to fill everything in
           </label>
           <textarea
             id="paste"
-            className="input h-16 font-mono text-xs"
-            placeholder={'Tariffs don’t cause inflation\nSmith 23, Prof. of Econ at MIT, https://…\nThe evidence shows…'}
+            className="input h-14 resize-none font-mono text-xs"
+            placeholder={'Tag line\nAuthor 23, qualifications, https://…\nCard text…'}
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
             onPaste={(e) => {
@@ -78,78 +81,87 @@ export function ResponseEditor({ argumentId, initial, onDone }: Props) {
           />
         </div>
       )}
-      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+
+      <div>
+        <span className="label">Type</span>
+        <div className="flex flex-wrap gap-1.5">
+          {RESPONSE_KINDS.map((k) => (
+            <button
+              type="button"
+              key={k}
+              onClick={() => setKind(k)}
+              aria-pressed={kind === k}
+              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                kind === k ? 'border-accent bg-accent-soft text-fg' : 'border-line text-muted hover:border-line-strong hover:text-fg'
+              }`}
+            >
+              <KindBadge kind={k} /> {KIND_NAMES[k]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="tag">
+          Tag <span className="text-faint">· what you say on the flow</span>
+        </label>
+        <input id="tag" autoFocus className="input" value={tag} onChange={(e) => setTag(e.target.value)} required />
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className="label" htmlFor="tag">
-            Tag
-          </label>
-          <input id="tag" autoFocus className="input" value={tag} onChange={(e) => setTag(e.target.value)} required />
+          <span className="label">Kind</span>
+          <div className="seg">
+            <button type="button" aria-pressed={!isCard} onClick={() => setIsCard(false)}>
+              Analytic
+            </button>
+            <button type="button" aria-pressed={isCard} onClick={() => setIsCard(true)}>
+              Card
+            </button>
+          </div>
         </div>
         <div>
-          <label className="label" htmlFor="kind">
-            Type
-          </label>
-          <select id="kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as ResponseKind)}>
-            {RESPONSE_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {KIND_NAMES[k]}
-              </option>
+          <span className="label">Strength</span>
+          <div className="seg">
+            {([1, 2, 3] as const).map((n) => (
+              <button type="button" key={n} aria-pressed={strength === n} onClick={() => setStrength(n)} title={['', 'Backup', 'Solid', 'Go-to'][n]}>
+                {'★'.repeat(n)}
+              </button>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="strength">
-            Strength
-          </label>
-          <select
-            id="strength"
-            className="input"
-            value={strength}
-            onChange={(e) => setStrength(Number(e.target.value) as 1 | 2 | 3)}
-          >
-            <option value={3}>★★★ go-to</option>
-            <option value={2}>★★ solid</option>
-            <option value={1}>★ backup</option>
-          </select>
+          </div>
         </div>
       </div>
-      <div className="flex gap-4 text-sm">
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={!isCard} onChange={() => setIsCard(false)} /> Analytic
-        </label>
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={isCard} onChange={() => setIsCard(true)} /> Card
-        </label>
-      </div>
+
       {isCard && (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="cite">
               Cite
             </label>
-            <input id="cite" className="input" value={cite} onChange={(e) => setCite(e.target.value)} />
+            <input id="cite" className="input" value={cite} onChange={(e) => setCite(e.target.value)} placeholder="Author 23, qualifications" />
           </div>
           <div>
             <label className="label" htmlFor="url">
-              URL
+              Link
             </label>
-            <input id="url" className="input" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <input id="url" className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
           </div>
         </div>
       )}
       <div>
         <label className="label" htmlFor="text">
-          {isCard ? 'Card text' : 'Analysis'}
+          {isCard ? 'Card text' : 'Explanation'}
         </label>
-        <textarea id="text" className="input h-28" value={text} onChange={(e) => setText(e.target.value)} />
+        <textarea id="text" className="input min-h-28" rows={5} value={text} onChange={(e) => setText(e.target.value)} />
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
+        <span className="mr-auto text-xs text-faint">
+          <kbd>Ctrl</kbd> <kbd>Enter</kbd> to save
+        </span>
         <button type="button" className="btn" onClick={() => onDone()}>
           Cancel
         </button>
-        <button className="btn btn-primary">
-          Save <kbd>Ctrl+Enter</kbd>
-        </button>
+        <button className="btn btn-primary">{initial?.id ? 'Save changes' : 'Save response'}</button>
       </div>
     </form>
   );

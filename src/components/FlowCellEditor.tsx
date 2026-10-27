@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useAutosize } from '../hooks/useAutosize';
 import { updateCell } from '../lib/repo';
 import type { FlowCell, Speech } from '../types';
 import { KindBadge } from './KindBadge';
@@ -16,13 +17,15 @@ interface Props {
   rowId: string;
   speech: Speech;
   cell?: FlowCell;
-  ours: boolean;
+  width: number;
+  placeholder?: string;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onFocus: () => void;
 }
 
 const SAVE_DELAY = 300;
 
-export function FlowCellEditor({ ref, roundId, rowId, speech, cell, ours, onKeyDown }: Props) {
+export function FlowCellEditor({ ref, roundId, rowId, speech, cell, width, placeholder, onKeyDown, onFocus }: Props) {
   const [text, setText] = useState(cell?.text ?? '');
   const saved = useRef(cell?.text ?? '');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -51,10 +54,17 @@ export function FlowCellEditor({ ref, roundId, rowId, speech, cell, ours, onKeyD
     timer.current = setTimeout(() => flush(value), SAVE_DELAY);
   };
 
-  // Save pending edits if the cell unmounts (row deleted, view switched).
+  // Save pending edits if the cell unmounts (row deleted, view switched) or the page closes.
   const latest = useRef(text);
   latest.current = text;
-  useEffect(() => () => flush(latest.current), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onHide = () => flush(latest.current);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      flush(latest.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useImperativeHandle(ref, () => ({
     focus: (atEnd = true) => {
@@ -72,22 +82,24 @@ export function FlowCellEditor({ ref, roundId, rowId, speech, cell, ours, onKeyD
     getText: () => latest.current,
   }));
 
-  // Grow with content so long responses stay readable.
-  useEffect(() => {
-    const t = el.current;
-    if (!t) return;
-    t.style.height = 'auto';
-    t.style.height = `${t.scrollHeight}px`;
-  }, [text]);
+  // Grow with content; re-measure when the column is resized or the text size changes.
+  useAutosize(el, [text, width]);
 
   return (
     <div
-      className={`relative h-full border-r border-slate-200 dark:border-slate-800 ${
-        ours ? 'bg-emerald-50/40 dark:bg-emerald-950/20' : ''
-      }`}
+      className="relative h-full cursor-text focus-within:bg-accent-softer focus-within:shadow-[inset_0_0_0_2px_var(--accent)]"
+      onMouseDown={(e) => {
+        // Clicking the empty space below a short cell still puts the caret in it.
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          const t = el.current!;
+          t.focus();
+          t.setSelectionRange(t.value.length, t.value.length);
+        }
+      }}
     >
       {cell?.kind && (
-        <span className="pointer-events-none absolute top-1 right-1">
+        <span className="pointer-events-none absolute top-1.5 right-1.5">
           <KindBadge kind={cell.kind} />
         </span>
       )}
@@ -95,11 +107,17 @@ export function FlowCellEditor({ ref, roundId, rowId, speech, cell, ours, onKeyD
         ref={el}
         rows={2}
         value={text}
+        placeholder={placeholder}
         aria-label={`${speech} cell`}
         onChange={(e) => change(e.target.value)}
         onBlur={() => flush(text)}
+        onFocus={onFocus}
         onKeyDown={onKeyDown}
-        className="block min-h-[3.5rem] w-full resize-none overflow-hidden bg-transparent px-2 py-1.5 pr-9 text-sm leading-snug outline-none focus:bg-sky-50 dark:focus:bg-sky-950/40"
+        spellCheck={false}
+        style={{ fontSize: 'var(--flow-font)' }}
+        className={`block min-h-[3.75rem] w-full resize-none overflow-hidden bg-transparent px-2.5 py-2 leading-snug outline-none placeholder:text-faint/70 focus-visible:outline-none ${
+          cell?.kind ? 'pr-10' : ''
+        }`}
       />
     </div>
   );

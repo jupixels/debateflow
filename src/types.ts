@@ -100,3 +100,26 @@ export interface FlowCell {
   kind?: ResponseKind;
   linkedResponseIds: string[];
 }
+
+/** A prepared crossfire question, stored in the bank under an opponent argument. */
+export interface CxQuestion {
+  id: string;
+  argumentId: string;
+  text: string;
+  createdAt: number;
+}
+
+export const CX_SEGMENTS = ['CF1', 'CF2', 'GCF'] as const;
+export type CxSegment = (typeof CX_SEGMENTS)[number];
+
+/** One question/answer exchange logged during a crossfire. */
+export interface CxEntry {
+  id: string;
+  roundId: string;
+  segment: CxSegment;
+  asker: Side;
+  question: string;
+  answer: string;
+  concession: boolean;
+  createdAt: number;
+}
