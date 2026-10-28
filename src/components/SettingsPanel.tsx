@@ -201,6 +201,13 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               </p>
             )}
           </section>
+
+          <p className="text-xs text-faint">
+            Version {__APP_COMMIT__} · built{' '}
+            {new Date(__APP_BUILT__).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            <br />
+            New versions install automatically when you open the app.
+          </p>
         </div>
       </aside>
     </div>

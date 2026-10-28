@@ -9,6 +9,8 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { ConfirmDialog, Toaster } from './components/ui';
 import { applyTheme } from './lib/theme';
+import { isRunning } from './lib/timer';
+import { shouldAutoUpdate } from './lib/update';
 import { useApp } from './store';
 
 const isTyping = (t: EventTarget | null) =>
@@ -57,18 +59,46 @@ export default function App() {
   );
 }
 
-/** Never reload mid-round on its own: offer the update and let the user pick the moment. */
+const CHECK_EVERY_MS = 30 * 60 * 1000;
+
+/**
+ * Updates: right after the app opens they apply on their own (nothing to interrupt).
+ * Later, never reload mid-round on its own: show a banner and let the user pick the moment.
+ * A plain browser refresh can't pick up a new version while the old one is cached, so the
+ * app checks on open, when it comes back to the foreground, and every 30 minutes.
+ */
 function UpdateBanner() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      setInterval(() => reg.update().catch(() => {}), CHECK_EVERY_MS);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!needRefresh) return;
+    const { speech, prep } = useApp.getState().timers;
+    const clockRunning = isRunning(speech) || isRunning(prep.PRO) || isRunning(prep.CON);
+    if (shouldAutoUpdate(performance.now(), clockRunning)) void updateServiceWorker(true);
+  }, [needRefresh, updateServiceWorker]);
+
   if (!needRefresh) return null;
   return (
-    <div className="card animate-pop fixed bottom-4 left-4 z-[60] flex items-center gap-3 px-4 py-3 text-sm shadow-pop">
-      <span>A new version is ready.</span>
+    <div
+      role="status"
+      className="card animate-pop fixed top-16 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-3 border-accent px-4 py-2.5 text-sm shadow-pop"
+    >
+      <span>
+        <b>Update ready.</b> Reload to get the newest version.
+      </span>
       <button className="btn btn-primary btn-sm" onClick={() => updateServiceWorker(true)}>
-        Reload
+        Reload now
       </button>
       <button className="btn btn-ghost btn-sm" onClick={() => setNeedRefresh(false)}>
         Later
