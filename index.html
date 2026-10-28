@@ -25,14 +25,15 @@
   <body>
     <div id="root"></div>
     <!-- Shown only if the app hasn't rendered after 8 s, so a failed load is never a silent blank page. -->
-    <div id="boot-fail" hidden style="font: 15px/1.5 system-ui, sans-serif; max-width: 30rem; margin: 15vh auto; padding: 0 1.5rem; color: #ccc">
-      <h1 style="font-size: 1.2rem; color: #fff">U Flow didn’t load</h1>
+    <div id="boot-fail" hidden style="font: 15px/1.5 system-ui, sans-serif; max-width: 30rem; margin: 15vh auto; padding: 0 1.5rem">
+      <h1 style="font-size: 1.2rem">U Flow didn’t load</h1>
+      <p id="boot-hint" hidden style="padding: 0.6rem 0.8rem; border: 1px solid; border-radius: 6px"></p>
       <p>Try reloading. If that doesn’t help, reset the app files: this clears the cached copy of the app and downloads it again. Your bank, cases and rounds are not touched.</p>
       <p>
         <button onclick="location.reload()">Reload</button>
         <button id="boot-reset">Reset app files</button>
       </p>
-      <pre id="boot-err" style="white-space: pre-wrap; font-size: 12px; color: #999"></pre>
+      <pre id="boot-err" style="white-space: pre-wrap; font-size: 12px; opacity: 0.7"></pre>
     </div>
     <script>
       (function () {
@@ -53,6 +54,13 @@
           var root = document.getElementById('root');
           if (root && root.childElementCount) return;
           document.getElementById('boot-err').textContent = errors.join('\n') + '\n' + location.href;
+          // The page is the repo's source index.html, not the build: Pages is publishing the branch.
+          if (document.querySelector('script[src$="src/main.tsx"]')) {
+            var hint = document.getElementById('boot-hint');
+            hint.textContent =
+              'GitHub Pages is serving the source code instead of the built app. In the repo, open Settings → Pages and set Source to “GitHub Actions”, then run the “Deploy to GitHub Pages” workflow.';
+            hint.hidden = false;
+          }
           document.getElementById('boot-fail').hidden = false;
         }, 8000);
         document.getElementById('boot-reset').onclick = function () {
