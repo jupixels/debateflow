@@ -45,6 +45,8 @@ export interface Argument {
   side: Side;
   title: string;
   summary?: string;
+  /** Set when this is one of your own contentions, owned by a case. */
+  caseId?: string;
   createdAt: number;
 }
 
@@ -59,6 +61,8 @@ export interface BankResponse {
   url?: string;
   strength: 1 | 2 | 3;
   timesUsed: number;
+  /** For frontlines: the opponent response this answers. */
+  against?: string;
   createdAt: number;
 }
 
@@ -76,6 +80,12 @@ export interface Round {
   judge: string;
   judgeType: JudgeType;
   prepSeconds: number;
+  /** Our case for this round, if one was picked. */
+  caseId?: string;
+  /** Columns hidden per sheet; a missing sheet uses the defaults. */
+  hiddenCols?: Partial<Record<Side, Speech[]>>;
+  /** Weighing notes for summary / final focus. */
+  weighing?: string;
   createdAt: number;
 }
 
@@ -89,6 +99,8 @@ export interface FlowRow {
   sheet: Side;
   order: number;
   argumentId?: string;
+  /** Summary/FF plan: go for (default) or drop this argument. */
+  plan?: 'go' | 'drop';
 }
 
 export interface FlowCell {
@@ -106,6 +118,8 @@ export interface CxQuestion {
   id: string;
   argumentId: string;
   text: string;
+  /** Your prepared answer, for questions they may ask about your own case. */
+  answer?: string;
   createdAt: number;
 }
 
@@ -122,4 +136,26 @@ export interface CxEntry {
   answer: string;
   concession: boolean;
   createdAt: number;
+}
+
+export type Role = 'REBUTTAL' | 'CONSTRUCTIVE' | 'BOTH';
+
+/** Your own case: an ordered list of sections, read in the constructive. */
+export interface Case {
+  id: string;
+  resolutionId: string;
+  side: Side;
+  title: string;
+  createdAt: number;
+}
+
+export interface CaseSection {
+  id: string;
+  caseId: string;
+  order: number;
+  /** Contentions get a linked bank argument that holds their frontlines and CX prep. */
+  type: 'text' | 'contention';
+  title: string;
+  body: string;
+  argumentId?: string;
 }

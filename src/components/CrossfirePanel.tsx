@@ -14,11 +14,13 @@ interface Props {
   timerSegment: string;
   /** Opponent arguments linked on their sheet, used to rank prepared questions. */
   linkedArgumentIds: string[];
+  /** Your own contentions linked on your case sheet; their prepared Q&A is shown. */
+  ourArgumentIds: string[];
   onInsert: (text: string) => void;
   onClose: () => void;
 }
 
-export function CrossfirePanel({ round, timerSegment, linkedArgumentIds, onInsert, onClose }: Props) {
+export function CrossfirePanel({ round, timerSegment, linkedArgumentIds, ourArgumentIds, onInsert, onClose }: Props) {
   const theirSide: Side = round.ourSide === 'PRO' ? 'CON' : 'PRO';
   const [segment, setSegment] = useState<CxSegment>(() => latestCx(timerSegment));
   useEffect(() => {
@@ -35,6 +37,16 @@ export function CrossfirePanel({ round, timerSegment, linkedArgumentIds, onInser
     if (!theirArgs?.length) return [];
     return db.questions.where('argumentId').anyOf(theirArgs.map((a) => a.id)).toArray();
   }, [theirArgs]);
+
+  const ourKey = ourArgumentIds.join(',');
+  const defense = useLiveQuery(async () => {
+    const ids = ourKey ? ourKey.split(',') : [];
+    if (!ids.length) return [];
+    const own = (await db.args.bulkGet(ids)).filter((a) => a?.caseId);
+    const titles = new Map(own.map((a) => [a!.id, a!.title]));
+    const qs = await db.questions.where('argumentId').anyOf([...titles.keys()]).toArray();
+    return qs.map((q) => ({ ...q, argTitle: titles.get(q.argumentId) ?? '' }));
+  }, [ourKey]);
 
   const [asker, setAsker] = useState<Side>(round.ourSide);
   const [q, setQ] = useState('');
@@ -173,6 +185,31 @@ export function CrossfirePanel({ round, timerSegment, linkedArgumentIds, onInser
           )}
         </Section>
 
+        {!!defense?.length && (
+          <Section title="If they ask (your answers)" count={defense.length} defaultOpen>
+            <ul className="space-y-1">
+              {defense.map((d) => (
+                <li key={d.id}>
+                  <button
+                    className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-surface-3/60"
+                    onClick={() => {
+                      setAsker(theirSide);
+                      setQ(d.text);
+                      setA(d.answer ?? '');
+                      aRef.current?.focus();
+                    }}
+                    title="They asked this: log it with your prepared answer"
+                  >
+                    <span className="block font-medium">{d.text}</span>
+                    {d.answer ? <span className="block text-muted">→ {d.answer}</span> : <span className="block text-xs text-faint">No answer prepared</span>}
+                    <span className="block truncate text-[0.68rem] text-faint">{d.argTitle}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
         <Section title="Prepared questions" count={prepared.length} defaultOpen>
           {prepared.length === 0 ? (
             <p className="text-xs text-faint">Add CX questions to opponent arguments in your bank and they’ll appear here.</p>
@@ -276,7 +313,9 @@ function EntryRow({ entry: e, round, onInsert }: { entry: CxEntry; round: Round;
 function InlineEdit({ value, placeholder, className, onSave }: { value: string; placeholder: string; className?: string; onSave: (v: string) => void }) {
   const [v, setV] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => setV(value), [value]);
+  useEffect(() => {
+    setV(value);
+  }, [value]);
   useAutosize(ref, [v]);
   return (
     <textarea

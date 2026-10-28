@@ -2,6 +2,8 @@ import { db, newId } from '../db';
 import type {
   Argument,
   BankResponse,
+  Case,
+  CaseSection,
   CxEntry,
   CxQuestion,
   FlowCell,
@@ -78,6 +80,7 @@ export async function createRound(draft: RoundDraft): Promise<Round> {
       { id: newId(), roundId: round.id, sheet: 'CON', order: 0 },
     ]);
   });
+  await seedOurCaseRows(round);
   return round;
 }
 
@@ -178,3 +181,150 @@ export const deleteCxEntry = (id: string) => db.cx.delete(id);
 /** How a crossfire concession reads when dropped onto the flow. */
 export const formatConcession = (e: CxEntry) =>
   `[CX ${e.segment}] ${e.answer.trim() || e.question.trim()}`;
+
+export async function setHiddenColumns(roundId: string, sheet: Side, hidden: Speech[] | null) {
+  const round = await db.rounds.get(roundId);
+  if (!round) return;
+  const hiddenCols = { ...round.hiddenCols };
+  if (hidden === null) delete hiddenCols[sheet];
+  else hiddenCols[sheet] = hidden;
+  await db.rounds.update(roundId, { hiddenCols });
+}
+
+export const updateQuestionAnswer = (id: string, answer: string) => db.questions.update(id, { answer });
+
+// ---- Cases (your own constructive) ----
+
+async function addContentionArgument(c: Case, title: string): Promise<string> {
+  const a: Argument = { id: newId(), resolutionId: c.resolutionId, side: c.side, title: title.trim(), caseId: c.id, createdAt: Date.now() };
+  await db.args.add(a);
+  return a.id;
+}
+
+export async function createCase(resolutionId: string, side: Side, title: string): Promise<Case> {
+  const c: Case = { id: newId(), resolutionId, side, title: title.trim(), createdAt: Date.now() };
+  await db.transaction('rw', [db.cases, db.sections, db.args], async () => {
+    await db.cases.add(c);
+    await db.sections.bulkAdd([
+      { id: newId(), caseId: c.id, order: 0, type: 'text', title: 'Intro', body: '' },
+      {
+        id: newId(),
+        caseId: c.id,
+        order: 1,
+        type: 'contention',
+        title: 'Contention 1',
+        body: '',
+        argumentId: await addContentionArgument(c, 'Contention 1'),
+      },
+    ]);
+  });
+  return c;
+}
+
+export const renameCase = (id: string, title: string) => db.cases.update(id, { title: title.trim() });
+
+export async function sectionsOf(caseId: string): Promise<CaseSection[]> {
+  return (await db.sections.where('caseId').equals(caseId).toArray()).sort((a, b) => a.order - b.order);
+}
+
+/** Copy a case (e.g. a lay version or a 3:45 cut). Contentions share their frontlines and CX prep with the original. */
+export async function duplicateCase(id: string, title: string): Promise<Case | undefined> {
+  const orig = await db.cases.get(id);
+  if (!orig) return undefined;
+  const c: Case = { ...orig, id: newId(), title: title.trim(), createdAt: Date.now() };
+  await db.transaction('rw', [db.cases, db.sections], async () => {
+    await db.cases.add(c);
+    await db.sections.bulkAdd((await sectionsOf(id)).map((s) => ({ ...s, id: newId(), caseId: c.id })));
+  });
+  return c;
+}
+
+/** Delete contention arguments no remaining section uses, with their frontlines and CX prep. */
+async function dropUnusedContentions(argIds: string[]) {
+  for (const argId of argIds) {
+    if ((await db.sections.filter((s) => s.argumentId === argId).count()) === 0) await deleteArgument(argId);
+  }
+}
+
+export async function deleteCase(id: string) {
+  await db.transaction('rw', [db.cases, db.sections, db.args, db.responses, db.questions, db.rows, db.rounds], async () => {
+    const sections = await db.sections.where('caseId').equals(id).toArray();
+    await db.sections.where('caseId').equals(id).delete();
+    await db.cases.delete(id);
+    await db.rounds.filter((r) => r.caseId === id).modify({ caseId: undefined });
+    await dropUnusedContentions(sections.map((s) => s.argumentId).filter((x): x is string => !!x));
+  });
+}
+
+export async function addSection(caseId: string, type: CaseSection['type'], afterOrder?: number): Promise<CaseSection> {
+  return db.transaction('rw', [db.cases, db.sections, db.args], async () => {
+    const c = (await db.cases.get(caseId))!;
+    const existing = await sectionsOf(caseId);
+    const order = afterOrder === undefined ? existing.length : afterOrder + 1;
+    for (const s of existing) if (s.order >= order) await db.sections.update(s.id, { order: s.order + 1 });
+    const n = existing.filter((s) => s.type === 'contention').length + 1;
+    const title = type === 'contention' ? `Contention ${n}` : '';
+    const section: CaseSection = {
+      id: newId(),
+      caseId,
+      order,
+      type,
+      title,
+      body: '',
+      argumentId: type === 'contention' ? await addContentionArgument(c, title) : undefined,
+    };
+    await db.sections.add(section);
+    return section;
+  });
+}
+
+export async function updateSection(id: string, patch: Partial<Pick<CaseSection, 'title' | 'body'>>) {
+  await db.transaction('rw', [db.sections, db.args], async () => {
+    const s = await db.sections.get(id);
+    if (!s) return;
+    await db.sections.update(id, patch);
+    // Keep the contention's bank argument named like the contention.
+    if (patch.title !== undefined && s.argumentId && patch.title.trim()) await db.args.update(s.argumentId, { title: patch.title.trim() });
+  });
+}
+
+export async function moveSection(id: string, dir: -1 | 1) {
+  await db.transaction('rw', db.sections, async () => {
+    const s = await db.sections.get(id);
+    if (!s) return;
+    const all = await sectionsOf(s.caseId);
+    const i = all.findIndex((x) => x.id === id);
+    const j = i + dir;
+    if (j < 0 || j >= all.length) return;
+    await db.sections.update(all[i].id, { order: all[j].order });
+    await db.sections.update(all[j].id, { order: all[i].order });
+  });
+}
+
+export async function deleteSection(id: string) {
+  await db.transaction('rw', [db.sections, db.args, db.responses, db.questions, db.rows], async () => {
+    const s = await db.sections.get(id);
+    if (!s) return;
+    await db.sections.delete(id);
+    if (s.argumentId) await dropUnusedContentions([s.argumentId]);
+  });
+}
+
+/** Fill a new round's "our case" sheet with one row per contention, linked to its prep. */
+export async function seedOurCaseRows(round: Round) {
+  if (!round.caseId) return;
+  const contentions = (await sectionsOf(round.caseId)).filter((s) => s.type === 'contention');
+  if (!contentions.length) return;
+  const constructive: Speech = round.ourSide === 'PRO' ? 'PC' : 'CC';
+  await db.transaction('rw', [db.rows, db.cells], async () => {
+    await db.rows.where({ roundId: round.id, sheet: round.ourSide }).delete();
+    for (const [order, s] of contentions.entries()) {
+      const row: FlowRow = { id: newId(), roundId: round.id, sheet: round.ourSide, order, argumentId: s.argumentId };
+      await db.rows.add(row);
+      await db.cells.add({ id: newId(), roundId: round.id, rowId: row.id, speech: constructive, text: s.title, linkedResponseIds: [] });
+    }
+  });
+}
+
+export const setRowPlan = (rowId: string, plan: 'go' | 'drop') => db.rows.update(rowId, { plan });
+export const setWeighing = (roundId: string, weighing: string) => db.rounds.update(roundId, { weighing });

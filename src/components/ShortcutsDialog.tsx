@@ -23,6 +23,8 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
       [['P'], 'Start / pause our prep'],
       [['Shift', 'P'], 'Start / pause their prep'],
       [['X'], 'Toggle crossfire panel'],
+      [['S'], 'Toggle speech builder (summary / FF)'],
+      [['Right-click'], 'Column header: hide or show columns'],
       [['?'], 'This list'],
     ],
   },

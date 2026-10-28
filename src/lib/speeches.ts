@@ -52,3 +52,27 @@ export const KIND_SHORTCUTS: Record<string, ResponseKind> = {
   Digit5: 'MITIGATION',
   Digit6: 'WEIGHING',
 };
+
+const other = (s: Side): Side => (s === 'PRO' ? 'CON' : 'PRO');
+const rebuttalOf = (s: Side): Speech => (s === 'PRO' ? 'PR' : 'CR');
+const constructiveOf = (s: Side): Speech => (s === 'PRO' ? 'PC' : 'CC');
+
+/**
+ * Columns that are normally empty on a sheet, hidden until you show them:
+ * - the other team's constructive (it's on the other sheet);
+ * - the first-speaking team's rebuttal on that team's own case sheet, because
+ *   the first rebuttal only attacks; frontlining starts with the second rebuttal.
+ */
+export function defaultHiddenColumns(sheet: Side, firstSide: Side): Speech[] {
+  const hidden: Speech[] = [constructiveOf(other(sheet))];
+  if (sheet === firstSide) hidden.push(rebuttalOf(firstSide));
+  return hidden;
+}
+
+export function hiddenColumns(
+  hiddenCols: Partial<Record<Side, Speech[]>> | undefined,
+  sheet: Side,
+  firstSide: Side,
+): Speech[] {
+  return hiddenCols?.[sheet] ?? defaultHiddenColumns(sheet, firstSide);
+}

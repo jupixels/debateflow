@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { AppHeader } from './components/AppHeader';
 import { BankView } from './components/BankView';
+import { CaseView } from './components/CaseView';
 import { FlowView } from './components/FlowView';
 import { RoundsView } from './components/RoundsView';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -43,6 +44,7 @@ export default function App() {
       <AppHeader onSettings={() => setSettingsOpen(true)} onShortcuts={() => setShortcutsOpen(true)} />
       <main className="min-h-0 flex-1">
         {view === 'bank' && <BankView />}
+        {view === 'case' && <CaseView />}
         {view === 'rounds' && <RoundsView />}
         {view === 'flow' && <FlowView onShortcuts={() => setShortcutsOpen(true)} />}
       </main>

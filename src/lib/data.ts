@@ -1,7 +1,18 @@
 import { db } from '../db';
-import type { Argument, BankResponse, CxEntry, CxQuestion, FlowCell, FlowRow, Resolution, Round } from '../types';
+import type {
+  Argument,
+  BankResponse,
+  Case,
+  CaseSection,
+  CxEntry,
+  CxQuestion,
+  FlowCell,
+  FlowRow,
+  Resolution,
+  Round,
+} from '../types';
 
-export const EXPORT_VERSION = 2;
+export const EXPORT_VERSION = 3;
 
 export interface ExportFile {
   app: 'rebuttal-flow';
@@ -15,12 +26,14 @@ export interface ExportFile {
   cells: FlowCell[];
   questions: CxQuestion[];
   cx: CxEntry[];
+  cases: Case[];
+  sections: CaseSection[];
 }
 
-const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells', 'questions', 'cx'] as const;
+const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells', 'questions', 'cx', 'cases', 'sections'] as const;
 
 export async function exportAll(): Promise<ExportFile> {
-  const [resolutions, args, responses, rounds, rows, cells, questions, cx] = await Promise.all(
+  const [resolutions, args, responses, rounds, rows, cells, questions, cx, cases, sections] = await Promise.all(
     TABLES.map((t) => db.table(t).toArray()),
   );
   return {
@@ -35,6 +48,8 @@ export async function exportAll(): Promise<ExportFile> {
     cells,
     questions,
     cx,
+    cases,
+    sections,
   } as ExportFile;
 }
 
@@ -98,6 +113,8 @@ export async function exportBank(resolutionId?: string): Promise<ExportFile> {
     args,
     responses: all.responses.filter((r) => argIds.has(r.argumentId)),
     questions: all.questions.filter((q) => argIds.has(q.argumentId)),
+    cases: all.cases.filter((c) => resIds.has(c.resolutionId)),
+    sections: all.sections.filter((s) => all.cases.some((c) => c.id === s.caseId && resIds.has(c.resolutionId))),
     rounds: [],
     rows: [],
     cells: [],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstSpeakingSide, flowColumns, roundSegments } from './speeches';
+import { defaultHiddenColumns, firstSpeakingSide, flowColumns, hiddenColumns, roundSegments } from './speeches';
 
 describe('speeches', () => {
   it('orders columns by who speaks first', () => {
@@ -19,5 +19,26 @@ describe('speeches', () => {
       'CC:240', 'PC:240', 'CF1:180', 'CR:240', 'PR:240', 'CF2:180',
       'CS:180', 'PS:180', 'GCF:180', 'CFF:120', 'PFF:120',
     ]);
+  });
+});
+
+describe('default hidden columns', () => {
+  it('hides the other constructive on each sheet', () => {
+    expect(defaultHiddenColumns('CON', 'CON')).toContain('PC');
+    expect(defaultHiddenColumns('PRO', 'CON')).toContain('CC');
+  });
+
+  it('hides the first rebuttal on the first speaker’s own sheet only', () => {
+    // Con speaks first: CR only attacks the Pro case, so it is hidden on the Con sheet.
+    expect(defaultHiddenColumns('CON', 'CON')).toEqual(['PC', 'CR']);
+    // PR (second rebuttal) answers the Con case and frontlines, so both sheets keep it.
+    expect(defaultHiddenColumns('PRO', 'CON')).toEqual(['CC']);
+    expect(defaultHiddenColumns('PRO', 'PRO')).toEqual(['CC', 'PR']);
+  });
+
+  it('uses saved choices over defaults', () => {
+    expect(hiddenColumns({ PRO: [] }, 'PRO', 'PRO')).toEqual([]);
+    expect(hiddenColumns({ PRO: [] }, 'CON', 'PRO')).toEqual(['PC']);
+    expect(hiddenColumns(undefined, 'CON', 'PRO')).toEqual(['PC']);
   });
 });
