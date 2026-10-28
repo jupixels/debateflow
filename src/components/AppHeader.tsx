@@ -22,7 +22,7 @@ export function AppHeader({ onSettings, onShortcuts }: { onSettings: () => void;
     <header className="relative z-30 flex h-13 shrink-0 items-center gap-3 border-b border-line bg-surface/85 px-3 backdrop-blur sm:px-4">
       <div className="flex items-center gap-2">
         <Logo size={26} />
-        <span className="hidden font-semibold tracking-tight sm:inline">Rebuttal Flow</span>
+        <span className="hidden font-semibold tracking-tight sm:inline">U Flow</span>
       </div>
       <nav className="seg ml-1 sm:ml-3" aria-label="Main">
         {TABS.filter((t) => t.id !== 'case' || role !== 'REBUTTAL').map(({ id, label, icon: Icon }) => (

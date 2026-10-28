@@ -24,6 +24,7 @@ export class FlowDB extends Dexie {
   cases!: EntityTable<Case, 'id'>;
   sections!: EntityTable<CaseSection, 'id'>;
 
+  // The database keeps the app's original name so existing data is found.
   constructor(name = 'rebuttal-flow') {
     super(name);
     this.version(1).stores({

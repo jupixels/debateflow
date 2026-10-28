@@ -161,10 +161,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               Everything is saved on this device. Export a backup regularly, and share your bank with a partner by sending them the bank file.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button className="btn" onClick={async () => downloadJson(await exportAll(), `rebuttal-flow-backup-${today}.json`)}>
+              <button className="btn" onClick={async () => downloadJson(await exportAll(), `u-flow-backup-${today}.json`)}>
                 <Download size={14} /> Backup all
               </button>
-              <button className="btn" onClick={async () => downloadJson(await exportBank(), `rebuttal-flow-bank-${today}.json`)}>
+              <button className="btn" onClick={async () => downloadJson(await exportBank(), `u-flow-bank-${today}.json`)}>
                 <Download size={14} /> Bank only
               </button>
               <button className="btn col-span-2" onClick={() => fileRef.current?.click()}>
@@ -190,7 +190,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               <p className="text-sm text-muted">Running as an installed app. It works offline.</p>
             ) : prompt ? (
               <button className="btn btn-primary w-full" onClick={promptInstall}>
-                <MonitorSmartphone size={15} /> Install Rebuttal Flow
+                <MonitorSmartphone size={15} /> Install U Flow
               </button>
             ) : isIos() ? (
               <p className="text-sm text-muted">In Safari, tap Share, then <b>Add to Home Screen</b>.</p>

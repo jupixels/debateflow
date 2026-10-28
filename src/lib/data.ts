@@ -15,6 +15,7 @@ import type {
 export const EXPORT_VERSION = 3;
 
 export interface ExportFile {
+  /** Internal file ID from the app's original name; kept so older backups still import. */
   app: 'rebuttal-flow';
   version: number;
   exportedAt: string;
@@ -67,7 +68,7 @@ export function parseExport(json: string): ExportFile {
   }
   const d = data as Partial<ExportFile>;
   if (!d || typeof d !== 'object' || d.app !== 'rebuttal-flow') {
-    throw new Error('This is not a Rebuttal Flow export.');
+    throw new Error('This is not a U Flow export.');
   }
   if (typeof d.version !== 'number' || d.version > EXPORT_VERSION) {
     throw new Error('This export was made by a newer version of the app.');
