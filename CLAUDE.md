@@ -14,7 +14,7 @@ npm test           # Vitest, jsdom + fake-indexeddb
 npm run build
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all four before pushing. Every push to `main` deploys to `https://jupixels.github.io/debateflow/` (`deploy.yml`).
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all four before pushing. Every push to `main` deploys to `https://jupixels.github.io/uflow/` (`deploy.yml`).
 
 ## Layout
 
@@ -59,4 +59,4 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all fo
 
 ## Verifying UI changes
 
-Unit tests don't cover components. For any UI change, run `npm run build`, serve `dist/` (for example `python3 -m http.server` from a folder holding `dist` as `debateflow/`) and drive it with Playwright (`require('playwright')`, `chromium.launch()`). Check for `pageerror` events and screenshot the screens you changed. The welcome screen's "Or try it with a sample bank" button gives you data to test against.
+Unit tests don't cover components. For any UI change, run `npm run build`, serve `dist/` (for example `python3 -m http.server` from a folder holding `dist` as `uflow/`) and drive it with Playwright (`require('playwright')`, `chromium.launch()`). Check for `pageerror` events and screenshot the screens you changed. The welcome screen's "Or try it with a sample bank" button gives you data to test against.
