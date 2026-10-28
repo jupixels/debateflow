@@ -3,12 +3,26 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { execSync } from 'node:child_process';
 
 // GitHub Pages serves the site from /debatesoftware/.
 const base = '/debatesoftware/';
 
+// Shown in Settings so you can tell which version is running.
+const commit = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'dev';
+  }
+})();
+
 export default defineConfig({
   base,
+  define: {
+    __APP_COMMIT__: JSON.stringify(commit),
+    __APP_BUILT__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     tailwindcss(),
