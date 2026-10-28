@@ -10,7 +10,7 @@ It's an installable app (PWA). Once installed, it opens in its own window and **
 
 ```bash
 npm install
-npm start        # builds and opens http://localhost:4173/debatesoftware/
+npm start        # builds and opens http://localhost:4173/
 ```
 
 Then click **Install app** in the top bar (or the install icon at the right of the address bar in Chrome/Edge). On an iPad, open the hosted site in Safari → Share → **Add to Home Screen**. After that you can close the terminal; just launch Rebuttal Flow from your dock, Start menu or home screen. New versions install by themselves when you open the app. If one arrives while you're using it (or a timer is running), an **Update ready** banner appears at the top instead, so a round is never interrupted; click **Reload now** when it suits you. A plain browser refresh does *not* update an offline-capable app, so use the banner (or close and reopen the app). **Settings** shows the version you're running.
@@ -61,7 +61,7 @@ Requires Node 22+.
 
 ```bash
 npm install      # first time (and in a fresh cloud session)
-npm run dev      # http://localhost:5173/debatesoftware/ (no offline/install support in dev)
+npm run dev      # http://localhost:5173/ (no offline/install support in dev)
 npm start        # production build + preview, installable
 npm test         # unit tests (Vitest)
 npm run lint
@@ -86,8 +86,8 @@ src/
 
 ## Deploying
 
-`.github/workflows/ci.yml` runs lint, typecheck, tests and build on every PR and push to `main`. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`, at `https://jupixels.github.io/debatesoftware/`.
+`.github/workflows/ci.yml` runs lint, typecheck, tests and build on every PR and push to `main`. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`, at `https://jupixels.github.io/debateflow/`.
 
 To turn Pages on: **Settings → Pages → Build and deployment → Source: GitHub Actions**. GitHub Pages for a **private** repository needs a paid plan (Pro, Team or Enterprise); on a free account, make the repository public first. Until Pages is enabled the deploy job will fail; that doesn't affect CI.
 
-The site is served from `/debatesoftware/` (set as `base` in `vite.config.ts`). If you rename the repo, change it there too.
+The build uses relative paths (`base: './'` in `vite.config.ts`), so it works from any folder: renaming the repo just moves the site to `https://jupixels.github.io/<new-name>/` with nothing to change. An app installed from the old address keeps running its last cached version; install it again from the new address. Your data stays, because it's stored per site (`jupixels.github.io`), not per folder.
