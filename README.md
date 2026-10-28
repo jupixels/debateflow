@@ -86,7 +86,7 @@ src/
 
 ## Deploying
 
-`.github/workflows/ci.yml` runs lint, typecheck, tests and build on every PR and push to `main`. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`, at `https://jupixels.github.io/debateflow/`.
+`.github/workflows/ci.yml` runs lint, typecheck, tests and build on every PR and push to `main`. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every push to `main`, at `https://jupixels.github.io/uflow/`.
 
 To turn Pages on: **Settings → Pages → Build and deployment → Source: GitHub Actions**. GitHub Pages for a **private** repository needs a paid plan (Pro, Team or Enterprise); on a free account, make the repository public first. Until Pages is enabled the deploy job will fail; that doesn't affect CI.
 

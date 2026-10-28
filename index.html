@@ -24,6 +24,53 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Shown only if the app hasn't rendered after 8 s, so a failed load is never a silent blank page. -->
+    <div id="boot-fail" hidden style="font: 15px/1.5 system-ui, sans-serif; max-width: 30rem; margin: 15vh auto; padding: 0 1.5rem; color: #ccc">
+      <h1 style="font-size: 1.2rem; color: #fff">U Flow didn’t load</h1>
+      <p>Try reloading. If that doesn’t help, reset the app files: this clears the cached copy of the app and downloads it again. Your bank, cases and rounds are not touched.</p>
+      <p>
+        <button onclick="location.reload()">Reload</button>
+        <button id="boot-reset">Reset app files</button>
+      </p>
+      <pre id="boot-err" style="white-space: pre-wrap; font-size: 12px; color: #999"></pre>
+    </div>
+    <script>
+      (function () {
+        var errors = [];
+        // Capture phase also catches failed <script>/<link> loads (e.g. a 404 after a path change).
+        addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            errors.push(t && (t.src || t.href) ? 'Could not load ' + (t.src || t.href) : e.message);
+          },
+          true,
+        );
+        addEventListener('unhandledrejection', function (e) {
+          errors.push(String(e.reason && e.reason.message ? e.reason.message : e.reason));
+        });
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount) return;
+          document.getElementById('boot-err').textContent = errors.join('\n') + '\n' + location.href;
+          document.getElementById('boot-fail').hidden = false;
+        }, 8000);
+        document.getElementById('boot-reset').onclick = function () {
+          var jobs = [];
+          if (navigator.serviceWorker) {
+            jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+              return Promise.all(rs.map(function (r) { return r.unregister(); }));
+            }));
+          }
+          if (window.caches) {
+            jobs.push(caches.keys().then(function (ks) {
+              return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+            }));
+          }
+          Promise.all(jobs).finally(function () { location.reload(); });
+        };
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
