@@ -46,6 +46,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all fo
 - **Read the time during render for timers.** Store clocks as `{ durationMs, elapsedMs, startedAt }` and compute with `remaining(clock, Date.now())`. `useTicker` only forces re-renders. Caching "now" in state once made timers show extra seconds on start.
 - **Global shortcuts** (Space, N, P, X, S in `FlowView`) must ignore typing and any open `[role="dialog"]` or `[role="menu"]`.
 - **Updates:** a browser refresh does not pick up a new deploy while the service worker serves the cache. `UpdateBanner` in `App.tsx` applies updates automatically within 20 s of opening (if no clock is running) and otherwise shows a banner. Never auto-reload mid-round.
+- **Blank-page fallback:** `index.html` shows a "didn't load" message after 8 s if `#root` is still empty. It lists failed file loads and errors, and has a **Reset app files** button that unregisters the service worker and clears caches (never IndexedDB). Keep it plain inline JS so it works even when the bundle doesn't.
 - **Schema or export changes:** bump the Dexie version and `EXPORT_VERSION` together, add new tables to `TABLES` in `data.ts`, and keep older export versions importable.
 - In a drag handler, render the resize handle with a plain function, not a component defined inside render, or it remounts and loses pointer capture.
 
