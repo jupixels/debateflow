@@ -5,8 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'node:child_process';
 
-// GitHub Pages serves the site from /debatesoftware/.
-const base = '/debatesoftware/';
+// Relative paths, so the app works from any folder: GitHub Pages serves it
+// under /<repo name>/, and renaming the repo must not break it.
+const base = './';
 
 // Shown in Settings so you can tell which version is running.
 const commit = (() => {
