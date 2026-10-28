@@ -32,9 +32,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Rebuttal Flow',
-        short_name: 'Rebuttal Flow',
-        description: 'Public Forum flowing with a rebuttal bank, quick insert, timers and crossfire notes.',
+        name: 'U Flow',
+        short_name: 'U Flow',
+        description: 'Public Forum flowing for rebuttal and constructive speakers: bank, case, timers, crossfire and speech builder.',
         start_url: base,
         scope: base,
         display: 'standalone',

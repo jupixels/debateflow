@@ -1,4 +1,4 @@
-# Rebuttal Flow
+# U Flow
 
 A Public Forum flowing app for the **rebuttal speaker**. Build a bank of saved responses before the tournament, then drop them onto your flow in seconds during the round. See [PLAN.md](PLAN.md) for the full roadmap.
 
@@ -13,7 +13,7 @@ npm install
 npm start        # builds and opens http://localhost:4173/
 ```
 
-Then click **Install app** in the top bar (or the install icon at the right of the address bar in Chrome/Edge). On an iPad, open the hosted site in Safari → Share → **Add to Home Screen**. After that you can close the terminal; just launch Rebuttal Flow from your dock, Start menu or home screen. New versions install by themselves when you open the app. If one arrives while you're using it (or a timer is running), an **Update ready** banner appears at the top instead, so a round is never interrupted; click **Reload now** when it suits you. A plain browser refresh does *not* update an offline-capable app, so use the banner (or close and reopen the app). **Settings** shows the version you're running.
+Then click **Install app** in the top bar (or the install icon at the right of the address bar in Chrome/Edge). On an iPad, open the hosted site in Safari → Share → **Add to Home Screen**. After that you can close the terminal; just launch U Flow from your dock, Start menu or home screen. New versions install by themselves when you open the app. If one arrives while you're using it (or a timer is running), an **Update ready** banner appears at the top instead, so a round is never interrupted; click **Reload now** when it suits you. A plain browser refresh does *not* update an offline-capable app, so use the banner (or close and reopen the app). **Settings** shows the version you're running.
 
 > Your data is saved per web address. If you used the app at `localhost:5173` (`npm run dev`) before, open **Settings → Backup all** there, then **Import** the file in the installed app.
 

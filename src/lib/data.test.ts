@@ -48,7 +48,7 @@ describe('export / import', () => {
 
   it('rejects files that are not exports', () => {
     expect(() => parseExport('nope')).toThrow(/valid JSON/);
-    expect(() => parseExport('{"foo":1}')).toThrow(/not a Rebuttal Flow export/);
+    expect(() => parseExport('{"foo":1}')).toThrow(/not a U Flow export/);
     expect(() => parseExport('{"app":"rebuttal-flow","version":99}')).toThrow(/newer version/);
     expect(() => parseExport('{"app":"rebuttal-flow","version":1,"responses":[{}]}')).toThrow(/malformed/);
   });

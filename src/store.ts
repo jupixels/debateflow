@@ -176,6 +176,7 @@ export const useApp = create<AppState>()(
       },
     }),
     {
+      // Original app name, kept so saved settings carry over.
       name: 'rebuttal-flow-ui',
       version: 2,
       migrate: (persisted, version) => {
