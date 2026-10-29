@@ -3,6 +3,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { AppHeader } from './components/AppHeader';
 import { BankView } from './components/BankView';
 import { CaseView } from './components/CaseView';
+import { PracticeView } from './components/PracticeView';
 import { FlowView } from './components/FlowView';
 import { RoundsView } from './components/RoundsView';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -47,6 +48,7 @@ export default function App() {
       <main className="min-h-0 flex-1">
         {view === 'bank' && <BankView />}
         {view === 'case' && <CaseView />}
+        {view === 'practice' && <PracticeView />}
         {view === 'rounds' && <RoundsView />}
         {view === 'flow' && <FlowView onShortcuts={() => setShortcutsOpen(true)} />}
       </main>

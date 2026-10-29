@@ -29,6 +29,14 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
     ],
   },
   {
+    title: 'Practice (flashcards)',
+    items: [
+      [['Space'], 'Show answer, then “Got it”'],
+      [['1–4'], 'Forgot · Hard · Got it · Easy'],
+      [['H'], 'Hint'],
+    ],
+  },
+  {
     title: 'Crossfire panel',
     items: [
       [['Enter'], 'Question → answer → log it'],

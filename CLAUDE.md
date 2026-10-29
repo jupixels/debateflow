@@ -18,16 +18,17 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all fo
 
 ## Layout
 
-- `src/types.ts`: the data model (Resolution, Argument, BankResponse, Round, FlowRow, FlowCell, CxQuestion, CxEntry, Case, CaseSection).
+- `src/types.ts`: the data model (Resolution, Argument, BankResponse, Round, FlowRow, FlowCell, CxQuestion, CxEntry, Case, CaseSection, Review).
 - `src/db.ts`: Dexie schema. **Never edit an existing `version(n)` block.** Add `version(n+1)` with only the changed or new tables.
 - `src/lib/`: pure logic and all DB writes. Components call these and never write to `db` directly.
   - `repo.ts`: CRUD and cascades (deleting a resolution, argument, round, case or section also deletes what hangs off it).
   - `speeches.ts`: PF speech order, timings, default hidden columns. `labels.ts`: Pro/Con vs Aff/Neg display names.
+  - `flashcards.ts`: Leitner scheduling (`rate`), study queue and deck counts for the Practice tab.
   - `summary.ts`: speech-builder analysis and outline. `caseTime.ts`: word counts and time estimates.
   - `data.ts`: JSON export/import. `timer.ts`: clocks. `search.ts`: Fuse search. `cardParser.ts`: paste-a-card splitting.
   - `theme.ts`, `install.ts`, `update.ts`: accent color wheel, PWA install prompt, auto-update rule.
 - `src/store.ts`: Zustand UI state (settings, selection, timers, side panel), persisted to localStorage, plus toasts and `confirmAction()`.
-- `src/components/`: one file per screen or panel (`BankView`, `CaseView`, `RoundsView`, `FlowView`, `CrossfirePanel`, `SummaryPanel`, `ReadingMode`, `SettingsPanel`). Shared pieces live in `ui.tsx`.
+- `src/components/`: one file per screen or panel (`BankView`, `CaseView`, `PracticeView`, `RoundsView`, `FlowView`, `CrossfirePanel`, `SummaryPanel`, `ReadingMode`, `SettingsPanel`). Shared pieces live in `ui.tsx`.
 - Tests sit next to the code as `*.test.ts`. Unit-test logic in `src/lib/`; components are checked by driving the built app in Playwright.
 
 ## Domain rules
@@ -36,6 +37,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, test and build. Run all fo
 - A round has two flow sheets, one per case (`FlowRow.sheet`). Column order follows the real speaking order (`flowColumns(firstSide)`).
 - Hidden columns are stored per round and per sheet in `Round.hiddenCols`. A missing entry means "use `defaultHiddenColumns`".
 - An `Argument` with `caseId` is one of the user's own contentions. Its `BankResponse`s are frontlines (with `against`) and its `CxQuestion`s carry an `answer`. Without `caseId` it is an opponent argument.
+- Flashcard progress is a `Review` per bank response (`Review.id` = response id). Deleting a response, argument or resolution must delete its reviews too: any transaction that may cascade into `deleteArgument` has to include `db.reviews`. Full backups include reviews; a bank-only export leaves them out, so a partner starts fresh.
 - Roles (`REBUTTAL | CONSTRUCTIVE | BOTH`) only change defaults and visibility (Case tab, which sheet opens). Don't fork features by role.
 
 ## Gotchas (each of these has bitten us)

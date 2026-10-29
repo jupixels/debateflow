@@ -9,6 +9,7 @@ import type {
   FlowCell,
   FlowRow,
   Resolution,
+  Review,
   Round,
 } from './types';
 
@@ -23,6 +24,7 @@ export class FlowDB extends Dexie {
   cx!: EntityTable<CxEntry, 'id'>;
   cases!: EntityTable<Case, 'id'>;
   sections!: EntityTable<CaseSection, 'id'>;
+  reviews!: EntityTable<Review, 'id'>;
 
   // The database keeps the app's original name so existing data is found.
   constructor(name = 'rebuttal-flow') {
@@ -43,6 +45,9 @@ export class FlowDB extends Dexie {
       args: 'id, resolutionId, side, caseId',
       cases: 'id, resolutionId',
       sections: 'id, caseId',
+    });
+    this.version(4).stores({
+      reviews: 'id, due',
     });
   }
 }

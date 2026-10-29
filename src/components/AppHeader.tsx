@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BookOpen, Download, Keyboard, ListChecks, ScrollText, Settings, Swords } from 'lucide-react';
+import { BookOpen, Download, Keyboard, Layers, ListChecks, ScrollText, Settings, Swords } from 'lucide-react';
 import { db } from '../db';
 import { promptInstall, useInstall } from '../lib/install';
 import { type View, useApp } from '../store';
@@ -8,6 +8,7 @@ import { Logo } from './ui';
 const TABS: { id: View; label: string; icon: typeof BookOpen }[] = [
   { id: 'bank', label: 'Bank', icon: BookOpen },
   { id: 'case', label: 'Case', icon: ScrollText },
+  { id: 'practice', label: 'Practice', icon: Layers },
   { id: 'rounds', label: 'Rounds', icon: ListChecks },
   { id: 'flow', label: 'Flow', icon: Swords },
 ];
@@ -31,11 +32,14 @@ export function AppHeader({ onSettings, onShortcuts }: { onSettings: () => void;
             aria-pressed={view === id}
             disabled={id === 'flow' && !roundId}
             onClick={() => setView(id)}
-            className="disabled:opacity-40"
+            className="disabled:opacity-40 max-sm:!px-2.5"
+            aria-label={label}
+            title={label}
           >
             <span className="inline-flex items-center gap-1.5">
               <Icon size={15} />
-              {label}
+              {/* Icons only on phones, where five labels don't fit. */}
+              <span className="hidden sm:inline">{label}</span>
               {id === 'flow' && roundLabel && (
                 <span className="hidden max-w-36 truncate rounded bg-accent-soft px-1.5 text-xs font-medium text-accent-text md:inline">
                   {roundLabel}
