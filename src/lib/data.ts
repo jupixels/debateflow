@@ -9,10 +9,11 @@ import type {
   FlowCell,
   FlowRow,
   Resolution,
+  Review,
   Round,
 } from '../types';
 
-export const EXPORT_VERSION = 3;
+export const EXPORT_VERSION = 4;
 
 export interface ExportFile {
   /** Internal file ID from the app's original name; kept so older backups still import. */
@@ -29,12 +30,13 @@ export interface ExportFile {
   cx: CxEntry[];
   cases: Case[];
   sections: CaseSection[];
+  reviews: Review[];
 }
 
-const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells', 'questions', 'cx', 'cases', 'sections'] as const;
+const TABLES = ['resolutions', 'args', 'responses', 'rounds', 'rows', 'cells', 'questions', 'cx', 'cases', 'sections', 'reviews'] as const;
 
 export async function exportAll(): Promise<ExportFile> {
-  const [resolutions, args, responses, rounds, rows, cells, questions, cx, cases, sections] = await Promise.all(
+  const [resolutions, args, responses, rounds, rows, cells, questions, cx, cases, sections, reviews] = await Promise.all(
     TABLES.map((t) => db.table(t).toArray()),
   );
   return {
@@ -51,6 +53,7 @@ export async function exportAll(): Promise<ExportFile> {
     cx,
     cases,
     sections,
+    reviews,
   } as ExportFile;
 }
 
@@ -116,6 +119,8 @@ export async function exportBank(resolutionId?: string): Promise<ExportFile> {
     questions: all.questions.filter((q) => argIds.has(q.argumentId)),
     cases: all.cases.filter((c) => resIds.has(c.resolutionId)),
     sections: all.sections.filter((s) => all.cases.some((c) => c.id === s.caseId && resIds.has(c.resolutionId))),
+    // Flashcard progress is personal; a shared bank starts fresh for whoever imports it.
+    reviews: [],
     rounds: [],
     rows: [],
     cells: [],

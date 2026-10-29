@@ -159,3 +159,15 @@ export interface CaseSection {
   body: string;
   argumentId?: string;
 }
+
+/** Flashcard progress for one bank response; `id` is the response's id. */
+export interface Review {
+  id: string;
+  /** Leitner box: 0 = new, 1 = learning … 5 = mastered. */
+  box: number;
+  /** When it's next due, epoch ms. */
+  due: number;
+  reviewedAt: number;
+  reps: number;
+  lapses: number;
+}

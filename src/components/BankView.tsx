@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   BookOpen,
+  Layers,
   ChevronDown,
   ExternalLink,
   HelpCircle,
@@ -379,6 +380,11 @@ export function ArgumentDetail({ argument, embedded = false }: { argument: Argum
             </h1>
           )}
         </div>
+        {!!responses?.length && (
+          <button className="btn btn-sm" onClick={() => useApp.getState().practiceArgument(argument.id)} title="Drill these as flashcards">
+            <Layers size={14} /> Practice
+          </button>
+        )}
         {!own && (
         <button
           className="btn btn-ghost btn-danger btn-sm"

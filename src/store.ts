@@ -4,7 +4,7 @@ import { type Clock, clampAtZero, makeClock, pause, reset, toggle } from './lib/
 import type { SideLabels } from './lib/labels';
 import type { Role, Side } from './types';
 
-export type View = 'bank' | 'case' | 'rounds' | 'flow';
+export type View = 'bank' | 'case' | 'practice' | 'rounds' | 'flow';
 export type Panel = 'cx' | 'summary' | null;
 export type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -47,6 +47,8 @@ interface AppState {
   resolutionId: string | null;
   argumentId: string | null;
   caseId: string | null;
+  /** Argument to drill when the Practice tab opens (set from the Bank), then cleared. */
+  practiceArgumentId: string | null;
   roundId: string | null;
   sheet: Side | null;
   timers: TimerState;
@@ -64,6 +66,7 @@ interface AppState {
   setPanel: (p: Panel) => void;
   togglePanel: (p: Exclude<Panel, null>) => void;
   selectCase: (id: string | null) => void;
+  practiceArgument: (id: string | null) => void;
   setCxAuto: (on: boolean) => void;
   selectResolution: (id: string | null) => void;
   selectArgument: (id: string | null) => void;
@@ -106,6 +109,7 @@ export const useApp = create<AppState>()(
       resolutionId: null,
       argumentId: null,
       caseId: null,
+      practiceArgumentId: null,
       roundId: null,
       sheet: null,
       timers: emptyTimers,
@@ -129,6 +133,7 @@ export const useApp = create<AppState>()(
       setPanel: (panel) => set({ panel }),
       togglePanel: (p) => set({ panel: get().panel === p ? null : p }),
       selectCase: (caseId) => set({ caseId }),
+      practiceArgument: (practiceArgumentId) => set(practiceArgumentId ? { practiceArgumentId, view: 'practice' } : { practiceArgumentId }),
       setCxAuto: (cxAuto) => set({ cxAuto }),
       selectResolution: (resolutionId) => set({ resolutionId, argumentId: null, caseId: null }),
       selectArgument: (argumentId) => set({ argumentId }),
